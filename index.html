@@ -338,9 +338,24 @@
   <div class="loading"><div>LOADING SCORES</div><div class="lbar"></div></div>
 </div>
 
+<!-- Box Score Modal -->
+<div class="bs-overlay" id="bsOverlay">
+  <div class="bs-modal" id="bsModal">
+    <div class="bs-header">
+      <div>
+        <div class="bs-title" id="bsTitle">BOX SCORE</div>
+        <div class="bs-subtitle" id="bsSubtitle"></div>
+      </div>
+      <button class="bs-close" id="bsClose">&#10005;</button>
+    </div>
+    <div class="bs-body" id="bsBody">
+      <div class="bs-loading">LOADING&hellip;</div>
+    </div>
+  </div>
+</div>
+
 <script>
-/* jshint esversion:6 */
-'use strict';
+/* D1 Baseball Live Scores */
 
 // ── State ─────────────────────────────────────────────────────────────────────
 var allGames    = [];
@@ -979,7 +994,7 @@ for (var sti = 0; sti < stabs.length; sti++) {
 }
 
 // ── Box Score Modal ───────────────────────────────────────────────────────────
-function openBoxScore(gameId, awayName, homeName) {
+window.openBoxScore = function(gameId, awayName, homeName) {
   var overlay = document.getElementById('bsOverlay');
   var title   = document.getElementById('bsTitle');
   var sub     = document.getElementById('bsSubtitle');
@@ -1201,22 +1216,6 @@ setInterval(fetchAllStats, 300000); // refresh stats every 5 min
   if (el) el.textContent = count.toLocaleString();
 })();
 </script>
-
-<!-- Box Score Modal -->
-<div class="bs-overlay" id="bsOverlay">
-  <div class="bs-modal" id="bsModal">
-    <div class="bs-header">
-      <div>
-        <div class="bs-title" id="bsTitle">BOX SCORE</div>
-        <div class="bs-subtitle" id="bsSubtitle"></div>
-      </div>
-      <button class="bs-close" id="bsClose">&#10005;</button>
-    </div>
-    <div class="bs-body" id="bsBody">
-      <div class="bs-loading">LOADING&hellip;</div>
-    </div>
-  </div>
-</div>
 
 <!-- Hit Counter -->
 <div id="hitCounter">
