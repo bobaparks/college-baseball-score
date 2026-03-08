@@ -716,83 +716,121 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
+// Source: NCAA.com stats pages (HTML tables), fetched via corsproxy.io
+// Stat IDs confirmed from ncaa.com/stats/baseball/d1/current/individual/<id>
+//   200 = Batting Average
+//   210 = Home Runs
+//   214 = RBI
+//   201 = ERA
+//   212 = Strikeouts
 
-var STAT_CATS = [
-  { key: 'battingAverage', label: 'AVG',  url: 'batting?sort=battingAverage&limit=5' },
-  { key: 'homeRuns',       label: 'HR',   url: 'batting?sort=homeRuns&limit=5' },
-  { key: 'RBIs',           label: 'RBI',  url: 'batting?sort=RBIs&limit=5' },
-  { key: 'ERA',            label: 'ERA',  url: 'pitching?sort=ERA&limit=5&order=asc' },
-  { key: 'strikeouts',     label: 'K',    url: 'pitching?sort=strikeouts&limit=5' }
+var NCAA_STATS = [
+  { id: '200', label: 'AVG',  col: 'BA' },
+  { id: '210', label: 'HR',   col: 'HR' },
+  { id: '214', label: 'RBI',  col: 'RBI' },
+  { id: '201', label: 'ERA',  col: 'ERA' },
+  { id: '212', label: 'K',    col: 'SO' }
 ];
 
-// ESPN conference IDs for college baseball
-var CONF_IDS = [
-  { id: '1', name: 'SEC' },
-  { id: '2', name: 'ACC' },
-  { id: '8', name: 'Big 12' },
-  { id: '7', name: 'Big Ten' },
-  { id: '4', name: 'Pac-12' },
-  { id: '151', name: 'Sun Belt' },
-  { id: '11', name: 'American' },
-  { id: '12', name: 'C-USA' },
-  { id: '24', name: 'Big West' },
-  { id: '23', name: 'MWC' },
-  { id: '26', name: 'WCC' },
-  { id: '18', name: 'MVC' },
-  { id: '48', name: 'SoCon' },
-  { id: '31', name: 'Southland' },
-  { id: '46', name: 'OVC' },
-  { id: '57', name: 'MAC' },
-  { id: '62', name: 'SWAC' },
-  { id: '63', name: 'MEAC' }
+// NCAA conference slugs for the by-conf view
+// These match ncaa.com conference filter URLs
+var NCAA_CONFS = [
+  { slug: 'sec',        name: 'SEC' },
+  { slug: 'acc',        name: 'ACC' },
+  { slug: 'big-12',     name: 'Big 12' },
+  { slug: 'big-ten',    name: 'Big Ten' },
+  { slug: 'pac-12',     name: 'Pac-12' },
+  { slug: 'sun-belt',   name: 'Sun Belt' },
+  { slug: 'american',   name: 'American' },
+  { slug: 'swac',       name: 'SWAC' },
+  { slug: 'meac',       name: 'MEAC' }
 ];
 
-var statsScope    = 'overall';
-var allStatItems  = [];   // { scope, conf, cat, player, team, val }
-var statsBuilt    = false;
+var statsScope   = 'overall';
+var overallItems = [];  // parsed from overall D1 pages
+var confItems    = [];  // parsed from conference pages
+var statsBuilt   = false;
 
-var ESPN_STATS_BASE = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/leaders/';
+var PROXY = 'https://corsproxy.io/?url=';
+var NCAA_BASE = 'https://www.ncaa.com/stats/baseball/d1/current/individual/';
+
+// Parse an HTML string from an NCAA stats page and return top N rows
+function parseNcaaTable(html, catLabel, confName, topN) {
+  var results = [];
+  try {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var rows = doc.querySelectorAll('table tbody tr');
+    var count = 0;
+    for (var i = 0; i < rows.length && count < topN; i++) {
+      var cells = rows[i].querySelectorAll('td');
+      if (cells.length < 4) continue;
+      // Typical columns: Rank | Name | Team | Cl | Position | G | ... | Stat
+      var name = cells[1] ? cells[1].textContent.trim() : '';
+      var team = cells[2] ? cells[2].textContent.trim() : '';
+      var val  = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : '';
+      if (!name || name === 'Name') continue;
+      results.push({
+        scope: confName ? 'conf' : 'overall',
+        conf:  confName || '',
+        cat:   catLabel,
+        player: name,
+        team:   team,
+        val:    val
+      });
+      count++;
+    }
+  } catch(e) { console.warn('parseNcaaTable error', e); }
+  return results;
+}
+
+function fetchNcaaPage(url, catLabel, confName, topN) {
+  var proxied = PROXY + encodeURIComponent(url);
+  return fetch(proxied)
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      return parseNcaaTable(html, catLabel, confName, topN);
+    })
+    .catch(function(e) {
+      console.warn('fetchNcaaPage failed', url, e);
+      return [];
+    });
+}
 
 function fetchAllStats() {
-  allStatItems = [];
-  statsBuilt = false;
+  overallItems = [];
+  confItems    = [];
+  statsBuilt   = false;
   document.getElementById('statsLoading').style.display = 'block';
+  document.getElementById('statsLoading').textContent   = 'LOADING STATS\u2026';
   document.getElementById('statsTickerInner').style.display = 'none';
 
   var fetches = [];
 
-  // Overall D1 leaders — one request per stat
-  for (var i = 0; i < STAT_CATS.length; i++) {
-    (function(cat) {
+  // ── Overall D1: top 5 per stat ──────────────────────────────────────────────
+  for (var oi = 0; oi < NCAA_STATS.length; oi++) {
+    (function(stat) {
+      var url = NCAA_BASE + stat.id;
       fetches.push(
-        fetch(ESPN_STATS_BASE + cat.url)
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            var leaders = extractLeaders(data, cat.label, 'OVERALL', 3);
-            for (var x = 0; x < leaders.length; x++) allStatItems.push(leaders[x]);
-          })
-          .catch(function() {})
+        fetchNcaaPage(url, stat.label, '', 5).then(function(rows) {
+          for (var r = 0; r < rows.length; r++) overallItems.push(rows[r]);
+        })
       );
-    })(STAT_CATS[i]);
+    })(NCAA_STATS[oi]);
   }
 
-  // Per-conference: fetch top 3 conferences × all 5 stats
-  // (limit to 6 conferences to keep load reasonable)
-  var confSubset = CONF_IDS.slice(0, 8);
-  for (var ci = 0; ci < confSubset.length; ci++) {
-    for (var si = 0; si < STAT_CATS.length; si++) {
-      (function(conf, cat) {
-        var urlWithConf = ESPN_STATS_BASE + cat.url + '&group=' + conf.id;
+  // ── By conference: top 1 per stat per conference ────────────────────────────
+  // NCAA conf-filtered URL pattern: /stats/baseball/d1/current/individual/<id>?conf=<slug>
+  for (var ci = 0; ci < NCAA_CONFS.length; ci++) {
+    for (var si = 0; si < NCAA_STATS.length; si++) {
+      (function(conf, stat) {
+        var url = NCAA_BASE + stat.id + '?conf=' + conf.slug;
         fetches.push(
-          fetch(urlWithConf)
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              var leaders = extractLeaders(data, cat.label, conf.name, 1);
-              for (var x = 0; x < leaders.length; x++) allStatItems.push(leaders[x]);
-            })
-            .catch(function() {})
+          fetchNcaaPage(url, stat.label, conf.name, 1).then(function(rows) {
+            for (var r = 0; r < rows.length; r++) confItems.push(rows[r]);
+          })
         );
-      })(confSubset[ci], STAT_CATS[si]);
+      })(NCAA_CONFS[ci], NCAA_STATS[si]);
     }
   }
 
@@ -802,78 +840,30 @@ function fetchAllStats() {
   });
 }
 
-function extractLeaders(data, catLabel, confName, limit) {
-  var results = [];
-  try {
-    var cats = data.leaders || data.categories || [];
-    if (!cats.length && data.rows) {
-      // fallback: some endpoints return rows directly
-      for (var i = 0; i < Math.min(limit, data.rows.length); i++) {
-        var row = data.rows[i];
-        results.push({
-          scope: confName === 'OVERALL' ? 'overall' : 'conf',
-          conf: confName,
-          cat: catLabel,
-          player: (row.athlete && (row.athlete.shortName || row.athlete.displayName)) || row.name || '—',
-          team: (row.team && (row.team.abbreviation || row.team.shortDisplayName)) || '',
-          val: row.value || row.displayValue || '—'
-        });
-      }
-      return results;
-    }
-    for (var ci = 0; ci < cats.length; ci++) {
-      var cat = cats[ci];
-      var leaders = cat.leaders || cat.athletes || [];
-      for (var li = 0; li < Math.min(limit, leaders.length); li++) {
-        var ldr = leaders[li];
-        var athlete = ldr.athlete || ldr;
-        var pName = athlete.shortName || athlete.displayName || athlete.name || '—';
-        var tName = '';
-        if (ldr.team) tName = ldr.team.abbreviation || ldr.team.shortDisplayName || '';
-        else if (athlete.team) tName = athlete.team.abbreviation || athlete.team.shortDisplayName || '';
-        var val = ldr.value || ldr.displayValue || (ldr.statistics && ldr.statistics[0] && ldr.statistics[0].displayValue) || '—';
-        results.push({
-          scope: confName === 'OVERALL' ? 'overall' : 'conf',
-          conf: confName,
-          cat: catLabel,
-          player: pName,
-          team: tName,
-          val: val
-        });
-      }
-    }
-  } catch(e) { /* skip bad responses */ }
-  return results;
-}
-
 function renderStatsTicker() {
-  var inner = document.getElementById('statsTickerInner');
+  var inner   = document.getElementById('statsTickerInner');
   var loading = document.getElementById('statsLoading');
 
-  var items = allStatItems.filter(function(it) {
-    return statsScope === 'overall' ? it.scope === 'overall' : it.scope === 'conf';
-  });
+  var items = statsScope === 'overall' ? overallItems : confItems;
 
   if (!items.length) {
-    loading.textContent = 'NO STATS AVAILABLE';
-    loading.style.display = 'block';
-    inner.style.display = 'none';
+    loading.textContent      = 'STATS UNAVAILABLE';
+    loading.style.display    = 'block';
+    inner.style.display      = 'none';
     return;
   }
 
-  // Double for seamless loop
   var doubled = items.concat(items);
   var html = '';
   for (var i = 0; i < doubled.length; i++) {
     var it = doubled[i];
     html += '<span class="stat-item">' +
       '<span class="stat-cat">' + it.cat + '</span>' +
-      (it.scope === 'conf' ? '<span class="stat-conf">' + it.conf + '</span>' : '') +
+      (it.conf ? '<span class="stat-conf">' + it.conf + '</span>' : '') +
       '<span class="stat-player">' + it.player + '</span>' +
-      (it.team ? '<span class="stat-team">(' + it.team + ')</span>' : '') +
+      '<span class="stat-team">(' + it.team + ')</span>' +
       '<span class="stat-val">' + it.val + '</span>' +
     '</span>';
-    // Section divider every 5 items
     if ((i + 1) % 5 === 0) {
       html += '<span class="stats-divider">&#9670;</span>';
     }
@@ -881,11 +871,8 @@ function renderStatsTicker() {
 
   inner.innerHTML = html;
   loading.style.display = 'none';
-  inner.style.display = 'flex';
-
-  // Adjust animation speed based on item count
-  var duration = Math.max(30, items.length * 4);
-  inner.style.animationDuration = duration + 's';
+  inner.style.display   = 'flex';
+  inner.style.animationDuration = Math.max(40, items.length * 3) + 's';
 }
 
 // Stats tab controls
@@ -896,9 +883,7 @@ for (var sti = 0; sti < stabs.length; sti++) {
       for (var xi = 0; xi < stabs.length; xi++) stabs[xi].classList.remove('active');
       tab.classList.add('active');
       statsScope = tab.getAttribute('data-scope');
-      if (statsBuilt) {
-        renderStatsTicker();
-      }
+      if (statsBuilt) renderStatsTicker();
     });
   })(stabs[sti]);
 }
