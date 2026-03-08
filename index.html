@@ -174,6 +174,28 @@
     color: var(--accent);
   }
 
+  .conf-select {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s, color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6270' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .conf-select:focus, .conf-select:hover { border-color: var(--accent); color: var(--accent); }
+  .conf-select option { background: #191d23; color: #e8eaed; letter-spacing: 0; }
+
   .search-box {
     margin-left: auto;
     display: flex;
@@ -392,6 +414,45 @@
   .winning-pitcher { color: var(--accent); }
   .losing-pitcher { color: var(--red); }
 
+  .game-links {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+
+  .game-link {
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .game-link:hover { border-color: var(--accent); color: var(--accent); }
+  .game-link.primary { border-color: var(--accent); color: var(--accent); }
+  .game-link.primary:hover { background: var(--accent); color: #000; }
+
+  .hbcu-badge {
+    display: inline-block;
+    font-size: 8px;
+    letter-spacing: 2px;
+    padding: 1px 5px;
+    background: #2a1f00;
+    color: #f5c842;
+    border: 1px solid #f5c84240;
+    border-radius: 2px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
   .bases-out {
     display: flex;
     align-items: center;
@@ -554,6 +615,35 @@
   <button class="filter-btn" data-filter="final">FINAL</button>
   <button class="filter-btn" data-filter="scheduled">UPCOMING</button>
 
+  <span class="filter-label" style="margin-left:8px">CONF</span>
+  <select class="conf-select" id="confSelect">
+    <option value="all">ALL CONFERENCES</option>
+    <option value="hbcu">★ HBCU</option>
+    <optgroup label="─────────────────">
+    <option value="ACC">ACC</option>
+    <option value="American">American Athletic</option>
+    <option value="Big 12">Big 12</option>
+    <option value="Big Ten">Big Ten</option>
+    <option value="Big West">Big West</option>
+    <option value="C-USA">Conference USA</option>
+    <option value="MAC">Mid-American</option>
+    <option value="MVC">Missouri Valley</option>
+    <option value="MWC">Mountain West</option>
+    <option value="NEC">Northeast</option>
+    <option value="OVC">Ohio Valley</option>
+    <option value="Pac-12">Pac-12</option>
+    <option value="Patriot">Patriot League</option>
+    <option value="SEC">SEC</option>
+    <option value="SoCon">Southern</option>
+    <option value="Southland">Southland</option>
+    <option value="SWAC">SWAC (HBCU)</option>
+    <option value="MEAC">MEAC (HBCU)</option>
+    <option value="Sun Belt">Sun Belt</option>
+    <option value="WAC">WAC</option>
+    <option value="WCC">WCC</option>
+    </optgroup>
+  </select>
+
   <div class="search-box">
     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--muted)">
       <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -575,7 +665,28 @@ let allGames = [];
 let selectedDate = '';
 let statusFilter = 'all';
 let searchQuery = '';
-let updateInterval = null;
+let confFilter = 'all';
+
+// ─── HBCU D1 Baseball Programs ────────────────────────────────────────────────
+// SWAC and MEAC are the two D1 conferences composed entirely of HBCUs
+const HBCU_SCHOOLS = new Set([
+  // SWAC
+  'Alabama A&M','Alabama State','Alcorn State','Arkansas-Pine Bluff','Bethune-Cookman',
+  'Coppin State','Delaware State','Florida A&M','Grambling','Grambling State',
+  'Howard','Jackson State','Maryland-Eastern Shore','Mississippi Valley State',
+  'Morgan State','Norfolk State','North Carolina A&T','North Carolina Central',
+  'Prairie View A&M','Savannah State','South Carolina State','Southern',
+  'Southern University','Texas Southern','Alabama St','Florida AM',
+  // MEAC
+  'Coppin St','Delaware St','Howard','Morgan St','Norfolk St','NC A&T','NC Central',
+  'SC State','MD-Eastern Shore',
+  // Additional HBCUs with D1 baseball (independents or other conf)
+  'Bowie State','Central State','Fayetteville State','Hampton','Langston',
+  'Lincoln (PA)','Miles','Tuskegee','Virginia State','Virginia Union',
+  'Winston-Salem State','Xavier (LA)',
+]);
+
+const HBCU_CONFERENCES = new Set(['SWAC','MEAC']);
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 function formatDate(d) {
@@ -674,8 +785,16 @@ function parseGame(event) {
     });
   });
 
+  const awayConf = away.team?.conferenceId || '';
+  const homeConf = home.team?.conferenceId || '';
+  const awayConfName = away.team?.conference?.name || away.team?.conference?.abbreviation || '';
+  const homeConfName = home.team?.conference?.name || home.team?.conference?.abbreviation || '';
+
+  const espnGameId = event.id;
+
   return {
     id: event.id,
+    espnGameId,
     gameStatus,
     period,
     displayClock,
@@ -690,6 +809,7 @@ function parseGame(event) {
       record: awayRecord,
       rank: awayRank,
       linescores: away.linescores || [],
+      confName: awayConfName,
     },
     home: {
       id: home.id,
@@ -701,6 +821,7 @@ function parseGame(event) {
       record: homeRecord,
       rank: homeRank,
       linescores: home.linescores || [],
+      confName: homeConfName,
     },
     linescores,
     situation,
@@ -710,12 +831,28 @@ function parseGame(event) {
   };
 }
 
+function isHBCU(game) {
+  return HBCU_SCHOOLS.has(game.away.name) || HBCU_SCHOOLS.has(game.home.name) ||
+         HBCU_CONFERENCES.has(game.away.confName) || HBCU_CONFERENCES.has(game.home.confName) ||
+         game.away.confName?.includes('SWAC') || game.home.confName?.includes('SWAC') ||
+         game.away.confName?.includes('MEAC') || game.home.confName?.includes('MEAC');
+}
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 function renderGames() {
   const main = document.getElementById('main');
   let games = allGames;
 
   if (statusFilter !== 'all') games = games.filter(g => g.gameStatus === statusFilter);
+
+  if (confFilter === 'hbcu') {
+    games = games.filter(isHBCU);
+  } else if (confFilter !== 'all') {
+    games = games.filter(g =>
+      g.away.confName?.includes(confFilter) || g.home.confName?.includes(confFilter)
+    );
+  }
+
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     games = games.filter(g => g.away.name.toLowerCase().includes(q) || g.home.name.toLowerCase().includes(q));
@@ -774,6 +911,7 @@ function gameCard(g) {
   const isLive = g.gameStatus === 'live';
   const isFinal = g.gameStatus === 'final';
   const isScheduled = g.gameStatus === 'scheduled';
+  const gameIsHBCU = isHBCU(g);
 
   const awayWin = g.away.score > g.home.score;
   const homeWin = g.home.score > g.away.score;
@@ -793,6 +931,25 @@ function gameCard(g) {
 
   const awayScoreHtml = isScheduled ? '' : `<span class="team-score ${awayScoreClass}">${g.away.score}</span>`;
   const homeScoreHtml = isScheduled ? '' : `<span class="team-score ${homeScoreClass}">${g.home.score}</span>`;
+
+  const awayHBCU = (HBCU_SCHOOLS.has(g.away.name) || HBCU_CONFERENCES.has(g.away.confName)) ? '<span class="hbcu-badge">HBCU</span>' : '';
+  const homeHBCU = (HBCU_SCHOOLS.has(g.home.name) || HBCU_CONFERENCES.has(g.home.confName)) ? '<span class="hbcu-badge">HBCU</span>' : '';
+
+  // ESPN links
+  const gamcastUrl = `https://www.espn.com/college-baseball/game/_/gameId/${g.espnGameId}`;
+  const boxscoreUrl = `https://www.espn.com/college-baseball/boxscore/_/gameId/${g.espnGameId}`;
+  const linksHtml = `
+    <div class="game-links">
+      ${isLive ? `<a class="game-link primary" href="${gamcastUrl}" target="_blank" rel="noopener">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        GAMECAST</a>` : ''}
+      ${!isScheduled ? `<a class="game-link" href="${boxscoreUrl}" target="_blank" rel="noopener">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        BOX SCORE</a>` : ''}
+      <a class="game-link" href="${gamcastUrl}" target="_blank" rel="noopener">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        ESPN</a>
+    </div>`;
 
   // Linescore
   let linescoreHtml = '';
@@ -865,7 +1022,7 @@ function gameCard(g) {
             ${teamInitials(g.away.name)}
           </div>
           <div class="team-name">
-            ${g.away.name}
+            ${g.away.name}${awayHBCU}
           </div>
           ${awayScoreHtml}
         </div>
@@ -875,13 +1032,14 @@ function gameCard(g) {
             ${teamInitials(g.home.name)}
           </div>
           <div class="team-name">
-            ${g.home.name}
+            ${g.home.name}${homeHBCU}
           </div>
           ${homeScoreHtml}
         </div>
       </div>
       ${linescoreHtml}
       ${situationHtml}
+      ${linksHtml}
     </div>`;
 }
 
@@ -908,6 +1066,11 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     statusFilter = btn.dataset.filter;
     renderGames();
   };
+});
+
+document.getElementById('confSelect').addEventListener('change', e => {
+  confFilter = e.target.value;
+  renderGames();
 });
 
 document.getElementById('searchInput').addEventListener('input', e => {
