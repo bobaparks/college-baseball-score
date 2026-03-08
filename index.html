@@ -7,9 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0c0f; --surface: #111418; --surface2: #191d23; --border: #252b35;
-    --text: #e8eaed; --muted: #5a6270; --accent: #c8f542; --red: #ff5252;
-    --blue: #4fc3f7; --live: #ff4545;
+    --bg: #0b1420; --surface: #112035; --surface2: #162840; --border: #1e3050;
+    --text: #f0ede6; --muted: #6a7f99; --accent: #f5b731; --red: #ff6b6b;
+    --blue: #7ec8e3; --live: #ff5252;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; overflow-x:hidden; }
@@ -67,7 +67,7 @@
     cursor:pointer; border:1px solid transparent; transition:all .15s; color:var(--muted);
     white-space:nowrap; background:none; font-family:'DM Mono',monospace; }
   .date-chip:hover { border-color:var(--border); color:var(--text); }
-  .date-chip.active { background:var(--accent); color:#000; font-weight:500; border-color:var(--accent); }
+  .date-chip.active { background:var(--accent); color:#0b1420; font-weight:500; border-color:var(--accent); }
 
   .filters { padding:12px 32px; display:flex; align-items:center; gap:12px;
     border-bottom:1px solid var(--border); flex-wrap:wrap; }
@@ -83,7 +83,7 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6270' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 8px center; }
   .csel:hover, .csel:focus { border-color:var(--accent); color:var(--accent); }
-  .csel option { background:#191d23; color:#e8eaed; }
+  .csel option { background:var(--surface2); color:var(--text); }
   .sbox { margin-left:auto; display:flex; align-items:center; gap:8px;
     border:1px solid var(--border); padding:5px 12px; border-radius:2px; }
   .sbox input { background:none; border:none; color:var(--text); font-family:'DM Mono',monospace;
@@ -123,7 +123,7 @@
   .win { color:var(--accent); } .lose { color:var(--muted); }
 
   .hbadge { display:inline-block; font-size:8px; letter-spacing:2px; padding:1px 5px;
-    background:#2a1f00; color:#f5c842; border:1px solid rgba(245,200,66,.25);
+    background:rgba(245,183,49,.15); color:#f5b731; border:1px solid rgba(245,183,49,.35);
     border-radius:2px; margin-left:4px; vertical-align:middle; }
 
   .linescore { margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
@@ -158,7 +158,7 @@
     display:inline-flex; align-items:center; gap:4px; }
   .glink:hover { border-color:var(--accent); color:var(--accent); }
   .glink.pri { border-color:var(--accent); color:var(--accent); }
-  .glink.pri:hover { background:var(--accent); color:#000; }
+  .glink.pri:hover { background:var(--accent); color:#0b1420; }
 
   .loading { text-align:center; padding:80px 0; font-size:11px; letter-spacing:3px; color:var(--muted); }
   .lbar { width:120px; height:2px; background:var(--border); margin:16px auto 0;
@@ -170,10 +170,58 @@
   .empty .icon { font-size:40px; display:block; margin-bottom:12px; opacity:.3; }
   .empty p { font-size:11px; letter-spacing:2px; }
 
+  /* ── Box score modal ── */
+  .bs-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500;
+    align-items:center; justify-content:center; padding:20px; }
+  .bs-overlay.open { display:flex; }
+  .bs-modal { background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    width:100%; max-width:700px; max-height:90vh; overflow-y:auto; position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .bs-header { padding:18px 20px 14px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:flex-start; position:sticky;
+    top:0; background:var(--surface); z-index:2; }
+  .bs-title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; color:var(--text); }
+  .bs-subtitle { font-size:9px; letter-spacing:2px; color:var(--muted); margin-top:2px; }
+  .bs-close { background:none; border:1px solid var(--border); color:var(--muted); cursor:pointer;
+    font-size:14px; width:28px; height:28px; border-radius:3px; display:flex; align-items:center;
+    justify-content:center; transition:all .15s; flex-shrink:0; font-family:'DM Mono',monospace; }
+  .bs-close:hover { border-color:var(--accent); color:var(--accent); }
+  .bs-body { padding:20px; }
+  .bs-score-row { display:flex; align-items:center; gap:16px; margin-bottom:20px;
+    padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .bs-team { flex:1; }
+  .bs-tname { font-size:15px; letter-spacing:.5px; }
+  .bs-trec { font-size:9px; color:var(--muted); letter-spacing:1px; margin-top:2px; }
+  .bs-score { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:1px; min-width:50px; text-align:center; }
+  .bs-win { color:var(--accent); } .bs-lose { color:var(--muted); }
+  .bs-vs { font-size:10px; color:var(--muted); letter-spacing:3px; }
+  .bs-section { margin-bottom:20px; }
+  .bs-section-title { font-size:9px; letter-spacing:3px; color:var(--muted); margin-bottom:10px;
+    padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .bs-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .bs-table th { text-align:left; padding:4px 8px; color:var(--muted); font-size:8px;
+    letter-spacing:2px; font-weight:400; border-bottom:1px solid var(--border); }
+  .bs-table th.r, .bs-table td.r { text-align:right; }
+  .bs-table td { padding:5px 8px; border-bottom:1px solid rgba(30,48,80,.5); color:var(--text); }
+  .bs-table tr:last-child td { border-bottom:none; }
+  .bs-table tr.total-row td { color:var(--accent); border-top:1px solid var(--border); font-weight:500; }
+  .bs-name { color:var(--text); }
+  .bs-pos { color:var(--muted); font-size:9px; margin-left:4px; }
+  .bs-loading { text-align:center; padding:40px; font-size:10px; letter-spacing:3px; color:var(--muted); }
+  .bs-error { text-align:center; padding:40px; color:var(--muted); font-size:10px; letter-spacing:2px; }
+  .bs-pitrow-w { color:var(--accent); } .bs-pitrow-l { color:var(--red); } .bs-pitrow-s { color:var(--blue); }
+  .bs-linescore th, .bs-linescore td { text-align:center; padding:3px 6px; font-size:9px;
+    min-width:22px; color:var(--muted); }
+  .bs-linescore th { border-bottom:1px solid var(--border); }
+  .bs-linescore td.bs-lbl { text-align:left; color:var(--text); }
+  .bs-linescore td.bs-tot { color:var(--accent); border-left:1px solid var(--border); font-weight:500; }
+
   @media(max-width:700px) {
     header,.date-strip,.filters,.main { padding-left:16px; padding-right:16px; }
     .grid { grid-template-columns:1fr; }
     .sbox { display:none; }
+    .bs-modal { max-height:95vh; }
+    .bs-score { font-size:36px; }
   }
 </style>
 </head>
@@ -644,10 +692,9 @@ function buildCard(g) {
 
   // Links
   var gcUrl  = 'https://www.espn.com/college-baseball/game/_/gameId/' + g.id;
-  var bsUrl  = 'https://www.espn.com/college-baseball/boxscore/_/gameId/' + g.id;
   var lHtml = '<div class="glinks">';
   if (live) lHtml += '<a class="glink pri" href="' + gcUrl + '" target="_blank" rel="noopener">&#9654; GAMECAST</a>';
-  if (!sched) lHtml += '<a class="glink" href="' + bsUrl + '" target="_blank" rel="noopener">&#9776; BOX SCORE</a>';
+  if (!sched) lHtml += '<button class="glink" onclick="openBoxScore(\'' + g.id + '\',\'' + g.away.name.replace(/'/g,'') + '\',\'' + g.home.name.replace(/'/g,'') + '\')">&#9776; BOX SCORE</button>';
   lHtml += '<a class="glink" href="' + gcUrl + '" target="_blank" rel="noopener">&#8599; ESPN</a>';
   lHtml += '</div>';
 
@@ -891,6 +938,212 @@ for (var sti = 0; sti < stabs.length; sti++) {
   })(stabs[sti]);
 }
 
+// ── Box Score Modal ───────────────────────────────────────────────────────────
+function openBoxScore(gameId, awayName, homeName) {
+  var overlay = document.getElementById('bsOverlay');
+  var title   = document.getElementById('bsTitle');
+  var sub     = document.getElementById('bsSubtitle');
+  var body    = document.getElementById('bsBody');
+
+  title.textContent = awayName + ' vs ' + homeName;
+  sub.textContent   = '';
+  body.innerHTML    = '<div class="bs-loading">LOADING BOX SCORE&hellip;</div>';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  var url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/summary?event=' + gameId;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) { renderBoxScore(data, body, sub); })
+    .catch(function() {
+      body.innerHTML = '<div class="bs-error">⚾ UNABLE TO LOAD BOX SCORE<br><br>' +
+        '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
+        '" target="_blank" style="color:var(--accent);letter-spacing:2px;font-size:10px">VIEW ON ESPN &#8599;</a></div>';
+    });
+}
+
+function renderBoxScore(data, body, sub) {
+  try {
+    var header = data.header || {};
+    var comps  = (header.competitions || [])[0] || {};
+    var teams  = comps.competitors || [];
+    var away   = teams.find(function(t){ return t.homeAway === 'away'; }) || teams[0] || {};
+    var home   = teams.find(function(t){ return t.homeAway === 'home'; }) || teams[1] || {};
+    var status = (comps.status || {});
+    var stType = (status.type || {}).description || '';
+    sub.textContent = stType.toUpperCase();
+
+    var aScore = parseInt(away.score) || 0;
+    var hScore = parseInt(home.score) || 0;
+    var aWin   = aScore > hScore;
+    var hWin   = hScore > aScore;
+    var aName  = (away.team || {}).shortDisplayName || awayName || 'Away';
+    var hName  = (home.team || {}).shortDisplayName || homeName || 'Home';
+    var aRec   = ((away.records || [])[0] || {}).summary || '';
+    var hRec   = ((home.records || [])[0] || {}).summary || '';
+
+    var html = '';
+
+    // ── Score header ──────────────────────────────────────────────────────────
+    html += '<div class="bs-score-row">' +
+      '<div class="bs-team">' +
+        '<div class="bs-tname">' + aName + '</div>' +
+        (aRec ? '<div class="bs-trec">' + aRec + '</div>' : '') +
+      '</div>' +
+      '<div class="bs-score ' + (aWin ? 'bs-win' : 'bs-lose') + '">' + aScore + '</div>' +
+      '<div class="bs-vs">@</div>' +
+      '<div class="bs-score ' + (hWin ? 'bs-win' : 'bs-lose') + '">' + hScore + '</div>' +
+      '<div class="bs-team" style="text-align:right">' +
+        '<div class="bs-tname">' + hName + '</div>' +
+        (hRec ? '<div class="bs-trec">' + hRec + '</div>' : '') +
+      '</div>' +
+    '</div>';
+
+    // ── Linescore ─────────────────────────────────────────────────────────────
+    var bxComp = (data.boxscore || {});
+    var bxTeams = bxComp.teams || [];
+    // also try data.header linescores
+    var aLS = away.linescores || [];
+    var hLS = home.linescores || [];
+    if (aLS.length) {
+      html += '<div class="bs-section"><div class="bs-section-title">LINESCORE</div>';
+      html += '<div class="linescore"><table class="bs-linescore">';
+      var headRow = '<tr><th></th>';
+      var aRow2   = '<tr><td class="bs-lbl">' + (away.team || {}).abbreviation + '</td>';
+      var hRow2   = '<tr><td class="bs-lbl">' + (home.team || {}).abbreviation + '</td>';
+      var aT2 = 0, hT2 = 0;
+      for (var i = 0; i < aLS.length; i++) {
+        headRow += '<th>' + (i+1) + '</th>';
+        var av = (aLS[i].value !== undefined && aLS[i].value !== null) ? aLS[i].value : '-';
+        var hv = (hLS[i] && hLS[i].value !== undefined && hLS[i].value !== null) ? hLS[i].value : '-';
+        aRow2 += '<td>' + av + '</td>';
+        hRow2 += '<td>' + hv + '</td>';
+        if (typeof av === 'number') aT2 += av;
+        if (typeof hv === 'number') hT2 += hv;
+      }
+      headRow += '<th class="bs-tot">R</th></tr>';
+      aRow2 += '<td class="bs-tot">' + aScore + '</td></tr>';
+      hRow2 += '<td class="bs-tot">' + hScore + '</td></tr>';
+      html += headRow + aRow2 + hRow2 + '</table></div></div>';
+    }
+
+    // ── Batting stats ─────────────────────────────────────────────────────────
+    var batters = bxTeams;
+    if (batters.length) {
+      for (var ti = 0; ti < batters.length; ti++) {
+        var t = batters[ti];
+        var tname = (t.team || {}).shortDisplayName || (ti === 0 ? aName : hName);
+        var stats = t.statistics || [];
+        var batStat = null;
+        for (var si = 0; si < stats.length; si++) {
+          if (stats[si].name === 'batting' || stats[si].type === 'batting') { batStat = stats[si]; break; }
+        }
+        if (!batStat) continue;
+        var cols = batStat.labels || [];
+        var athletes = batStat.athletes || [];
+        if (!athletes.length) continue;
+
+        html += '<div class="bs-section"><div class="bs-section-title">' + tname.toUpperCase() + ' BATTING</div>';
+        html += '<table class="bs-table"><thead><tr><th>PLAYER</th>';
+        for (var ci = 0; ci < cols.length; ci++) html += '<th class="r">' + cols[ci] + '</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var ai = 0; ai < athletes.length; ai++) {
+          var ath = athletes[ai];
+          if (!ath.athlete) continue;
+          var pname = ath.athlete.shortName || ath.athlete.displayName || '';
+          var pos   = ath.athlete.position ? ath.athlete.position.abbreviation : '';
+          var stats2 = ath.stats || [];
+          if (ath.didNotPlay) {
+            html += '<tr><td class="bs-name">' + pname + '<span class="bs-pos">' + pos + '</span></td><td colspan="' + cols.length + '" class="r" style="color:var(--muted)">DNP</td></tr>';
+            continue;
+          }
+          html += '<tr><td class="bs-name">' + pname + '<span class="bs-pos">' + pos + '</span></td>';
+          for (var si2 = 0; si2 < cols.length; si2++) html += '<td class="r">' + (stats2[si2] || '-') + '</td>';
+          html += '</tr>';
+        }
+
+        // Totals row
+        var totals = batStat.totals || [];
+        if (totals.length) {
+          html += '<tr class="total-row"><td>TOTALS</td>';
+          for (var ti2 = 0; ti2 < cols.length; ti2++) html += '<td class="r">' + (totals[ti2] || '') + '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+      }
+    }
+
+    // ── Pitching stats ────────────────────────────────────────────────────────
+    if (batters.length) {
+      for (var ti3 = 0; ti3 < batters.length; ti3++) {
+        var t2 = batters[ti3];
+        var tname2 = (t2.team || {}).shortDisplayName || (ti3 === 0 ? aName : hName);
+        var stats3 = t2.statistics || [];
+        var pitStat = null;
+        for (var si3 = 0; si3 < stats3.length; si3++) {
+          if (stats3[si3].name === 'pitching' || stats3[si3].type === 'pitching') { pitStat = stats3[si3]; break; }
+        }
+        if (!pitStat) continue;
+        var cols2 = pitStat.labels || [];
+        var athletes2 = pitStat.athletes || [];
+        if (!athletes2.length) continue;
+
+        html += '<div class="bs-section"><div class="bs-section-title">' + tname2.toUpperCase() + ' PITCHING</div>';
+        html += '<table class="bs-table"><thead><tr><th>PLAYER</th>';
+        for (var ci2 = 0; ci2 < cols2.length; ci2++) html += '<th class="r">' + cols2[ci2] + '</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var ai2 = 0; ai2 < athletes2.length; ai2++) {
+          var ath2   = athletes2[ai2];
+          if (!ath2.athlete) continue;
+          var pname2 = ath2.athlete.shortName || ath2.athlete.displayName || '';
+          var stats4 = ath2.stats || [];
+          var dec    = ath2.pitcher || '';
+          var decCls = dec === 'W' ? 'bs-pitrow-w' : dec === 'L' ? 'bs-pitrow-l' : dec === 'S' ? 'bs-pitrow-s' : '';
+          html += '<tr><td class="bs-name ' + decCls + '">' + pname2 + (dec ? ' <span style="font-size:9px">(' + dec + ')</span>' : '') + '</td>';
+          for (var si4 = 0; si4 < cols2.length; si4++) html += '<td class="r">' + (stats4[si4] || '-') + '</td>';
+          html += '</tr>';
+        }
+        var totals2 = pitStat.totals || [];
+        if (totals2.length) {
+          html += '<tr class="total-row"><td>TOTALS</td>';
+          for (var ti4 = 0; ti4 < cols2.length; ti4++) html += '<td class="r">' + (totals2[ti4] || '') + '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+      }
+    }
+
+    if (!html) {
+      html = '<div class="bs-error">BOX SCORE DATA NOT YET AVAILABLE</div>';
+    }
+    body.innerHTML = html;
+
+  } catch(e) {
+    console.error('renderBoxScore', e);
+    body.innerHTML = '<div class="bs-error">ERROR PARSING BOX SCORE</div>';
+  }
+}
+
+// Modal close handlers
+document.getElementById('bsClose').addEventListener('click', function() {
+  document.getElementById('bsOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+});
+document.getElementById('bsOverlay').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('bsOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 selDate = fmtDate(new Date());
 buildDateStrip();
@@ -909,6 +1162,22 @@ setInterval(fetchAllStats, 300000); // refresh stats every 5 min
 })();
 </script>
 
+<!-- Box Score Modal -->
+<div class="bs-overlay" id="bsOverlay">
+  <div class="bs-modal" id="bsModal">
+    <div class="bs-header">
+      <div>
+        <div class="bs-title" id="bsTitle">BOX SCORE</div>
+        <div class="bs-subtitle" id="bsSubtitle"></div>
+      </div>
+      <button class="bs-close" id="bsClose">&#10005;</button>
+    </div>
+    <div class="bs-body" id="bsBody">
+      <div class="bs-loading">LOADING&hellip;</div>
+    </div>
+  </div>
+</div>
+
 <!-- Hit Counter -->
 <div id="hitCounter">
   <span id="hitBall">⚾</span>
@@ -921,14 +1190,14 @@ setInterval(fetchAllStats, 300000); // refresh stats every 5 min
   position: fixed;
   bottom: 18px;
   right: 18px;
-  background: #0d1117;
-  border: 1px solid #2a2a2a;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px 8px;
   text-align: center;
   z-index: 999;
   min-width: 72px;
-  box-shadow: 0 2px 12px #000a;
+  box-shadow: 0 2px 12px rgba(0,0,0,.5);
   user-select: none;
 }
 #hitBall {
@@ -952,7 +1221,7 @@ setInterval(fetchAllStats, 300000); // refresh stats every 5 min
 #hitNum {
   font-family: 'DM Mono', monospace;
   font-size: 1.05rem;
-  color: #c8f542;
+  color: var(--accent);
   font-weight: 700;
   letter-spacing: 0.05em;
   margin-top: 1px;
