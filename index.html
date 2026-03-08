@@ -7,14 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b1420; --surface: #112035; --surface2: #162840; --border: #1e3050;
-    --text: #f0ede6; --muted: #6a7f99; --accent: #f5b731; --red: #ff6b6b;
-    --blue: #7ec8e3; --live: #ff5252;
+    --bg: #f5f0e8; --surface: #fffdf8; --surface2: #ede8de; --border: #c8bfa8;
+    --text: #1a1209; --muted: #7a6e5f; --accent: #b01c2e; --red: #b01c2e;
+    --blue: #1a4f7a; --live: #c0281e;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; overflow-x:hidden; }
-  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
-    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px); }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9999; }
   header { border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center;
     justify-content:space-between; height:64px; position:sticky; top:0; background:var(--bg); z-index:100; }
   .logo { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; color:var(--accent); }
@@ -67,10 +66,10 @@
     cursor:pointer; border:1px solid transparent; transition:all .15s; color:var(--muted);
     white-space:nowrap; background:none; font-family:'DM Mono',monospace; }
   .date-chip:hover { border-color:var(--border); color:var(--text); }
-  .date-chip.active { background:var(--accent); color:#0b1420; font-weight:500; border-color:var(--accent); }
+  .date-chip.active { background:var(--accent); color:#fffdf8; font-weight:500; border-color:var(--accent); }
 
-  .filters { padding:12px 32px; display:flex; align-items:center; gap:12px;
-    border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .filters { padding:12px 32px; display:flex; align-items:center; gap:8px;
+    border-bottom:1px solid var(--border); flex-wrap:wrap; row-gap:8px; }
   .flabel { font-size:10px; color:var(--muted); letter-spacing:2px; }
   .fbtn { padding:5px 12px; border:1px solid var(--border); background:none; color:var(--muted);
     font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; cursor:pointer;
@@ -123,7 +122,7 @@
   .win { color:var(--accent); } .lose { color:var(--muted); }
 
   .hbadge { display:inline-block; font-size:8px; letter-spacing:2px; padding:1px 5px;
-    background:rgba(245,183,49,.15); color:#f5b731; border:1px solid rgba(245,183,49,.35);
+    background:rgba(176,28,46,.1); color:#b01c2e; border:1px solid rgba(176,28,46,.3);
     border-radius:2px; margin-left:4px; vertical-align:middle; }
 
   .linescore { margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
@@ -158,7 +157,7 @@
     display:inline-flex; align-items:center; gap:4px; }
   .glink:hover { border-color:var(--accent); color:var(--accent); }
   .glink.pri { border-color:var(--accent); color:var(--accent); }
-  .glink.pri:hover { background:var(--accent); color:#0b1420; }
+  .glink.pri:hover { background:var(--accent); color:#fffdf8; }
 
   .loading { text-align:center; padding:80px 0; font-size:11px; letter-spacing:3px; color:var(--muted); }
   .lbar { width:120px; height:2px; background:var(--border); margin:16px auto 0;
@@ -217,11 +216,52 @@
   .bs-linescore td.bs-tot { color:var(--accent); border-left:1px solid var(--border); font-weight:500; }
 
   @media(max-width:700px) {
-    header,.date-strip,.filters,.main { padding-left:16px; padding-right:16px; }
-    .grid { grid-template-columns:1fr; }
+    /* Layout */
+    header { padding:0 14px; height:52px; }
+    .logo { font-size:22px; letter-spacing:2px; }
+    .logo span { font-size:10px; letter-spacing:3px; }
+    .last-updated { display:none; }
+
+    .date-strip { padding:8px 14px; gap:6px; }
+    .date-chip { padding:5px 10px; font-size:9px; }
+
+    .filters { padding:8px 14px; gap:8px; }
+    .flabel { font-size:9px; }
+    .fbtn { padding:4px 9px; font-size:9px; }
+    .csel { font-size:9px; padding:4px 22px 4px 8px; }
     .sbox { display:none; }
-    .bs-modal { max-height:95vh; }
-    .bs-score { font-size:36px; }
+
+    .stats-ticker-tabs { padding:0 10px; }
+    .stab, .stab-label { font-size:8px; padding:6px 10px; }
+
+    .main { padding:14px; }
+    .grid { grid-template-columns:1fr; gap:0; }
+
+    /* Cards */
+    .card { padding:14px; }
+    .tname { font-size:12px; }
+    .tscorebig { font-size:24px; }
+    .tlogo { width:24px; height:24px; font-size:9px; }
+    .gstatus { font-size:8px; }
+    .recinfo { font-size:8px; }
+    .glinks { gap:6px; }
+    .glink { font-size:8px; padding:4px 8px; }
+
+    /* Box score modal */
+    .bs-overlay { padding:0; align-items:flex-end; }
+    .bs-modal { max-height:92vh; border-radius:12px 12px 0 0; }
+    .bs-score { font-size:32px; }
+    .bs-tname { font-size:13px; }
+    .bs-table { font-size:9px; }
+    .bs-table th, .bs-table td { padding:4px 5px; }
+    .bs-header { padding:14px 16px 10px; }
+    .bs-title { font-size:16px; }
+    .bs-body { padding:14px; }
+
+    /* Hit counter — smaller on mobile */
+    #hitCounter { bottom:12px; right:12px; padding:8px 10px 6px; min-width:60px; }
+    #hitBall { font-size:1.2rem; }
+    #hitNum { font-size:0.9rem; }
   }
 </style>
 </head>
