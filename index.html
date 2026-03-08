@@ -1002,27 +1002,217 @@ window.openBoxScore = function(gameId, awayName, homeName) {
 
   title.textContent = awayName + ' @ ' + homeName;
   sub.textContent   = '';
-  body.innerHTML    = '<div class="bs-loading">LOADING BOX SCORE&hellip;</div>';
+  body.innerHTML    = '<div class="bs-loading">LOADING&hellip;</div>';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  // Use site.web.api.espn.com (the correct domain for summary endpoint)
-  var url = 'https://site.web.api.espn.com/apis/site/v2/sports/baseball/college-baseball/summary?region=us&lang=en&contentorigin=espn&event=' + gameId;
+  var url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/summary?event=' + gameId;
   fetch(url)
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function(data) {
-      renderBoxScore(data, body, sub, gameId);
+      // ── DEBUG: dump raw JSON structure into modal ──────────────────────────
+      var keys = Object.keys(data);
+      var bxKeys = data.boxscore ? Object.keys(data.boxscore) : [];
+      var bxTeams = (data.boxscore || {}).teams || [];
+      var bxPlayers = (data.boxscore || {}).players || [];
+      var debugHtml =
+        '<div style="font-size:10px;line-height:1.8;padding:8px;color:var(--text);font-family:monospace">' +
+        '<b style="color:var(--accent)">RAW API DEBUG</b><br>' +
+        '<b>Top-level keys:</b> ' + keys.join(', ') + '<br>' +
+        '<b>data.boxscore keys:</b> ' + (bxKeys.length ? bxKeys.join(', ') : 'NONE') + '<br>' +
+        '<b>data.boxscore.teams length:</b> ' + bxTeams.length + '<br>' +
+        '<b>data.boxscore.players length:</b> ' + bxPlayers.length + '<br>';
+
+      if (bxTeams.length) {
+        bxTeams.forEach(function(t, i) {
+          var stats = t.statistics || [];
+          debugHtml += '<b>teams[' + i + '] (' + ((t.team||{}).shortDisplayName||'?') + ') stats:</b> ';
+          debugHtml += stats.map(function(s){ return s.name + '(athletes:' + ((s.athletes||[]).length) + ',labels:' + ((s.labels||[]).length) + ',keys:' + ((s.keys||[]).length) + ')'; }).join(' | ') || 'NONE';
+          debugHtml += '<br>';
+          if (stats.length) {
+            stats.forEach(function(s) {
+              debugHtml += '&nbsp;&nbsp;<i>' + s.name + '</i> keys: ' + JSON.stringify(Object.keys(s)) + '<br>';
+              if (s.athletes && s.athletes.length) {
+                debugHtml += '&nbsp;&nbsp;&nbsp;&nbsp;athletes[0] keys: ' + JSON.stringify(Object.keys(s.athletes[0])) + '<br>';
+              }
+            });
+          }
+        });
+      }
+
+      if (bxPlayers.length) {
+        bxPlayers.forEach(function(t, i) {
+          var stats = t.statistics || [];
+          debugHtml += '<b>players[' + i + '] (' + ((t.team||{}).shortDisplayName||'?') + ') stats:</b> ';
+          debugHtml += stats.map(function(s){ return s.name + '(athletes:' + ((s.athletes||[]).length) + ')'; }).join(' | ') || 'NONE';
+          debugHtml += '<br>';
+        });
+      }
+
+      // Also dump first 3000 chars of raw JSON for inspection
+      var rawSnippet = JSON.stringify(data).substring(0, 3000);
+      debugHtml += '<br><b>Raw JSON (first 3000 chars):</b><br>' +
+        '<pre style="font-size:8px;white-space:pre-wrap;word-break:break-all;color:var(--muted)">' +
+        rawSnippet.replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+        '</pre></div>';
+
+      body.innerHTML = debugHtml;
+      // Also log full data to console
+      console.log('FULL BOX SCORE DATA:', data);
     })
     .catch(function(err) {
-      console.error('Box score fetch error:', err);
-      body.innerHTML = '<div class="bs-error">&#9918; UNABLE TO LOAD BOX SCORE<br><br>' +
+      console.error('Box score fetch:', err);
+      body.innerHTML = '<div class="bs-error">&#9918; UNABLE TO LOAD<br><br>' +
         '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
         '" target="_blank" style="color:var(--accent);letter-spacing:2px;font-size:10px">VIEW ON ESPN &#8599;</a></div>';
     });
 };
+
+function renderBoxScore(data, body, sub, gameId, awayName, homeName) {
+  try {
+    // ── Header / score ────────────────────────────────────────────────────────
+    var hdr   = data.header || {};
+    var comp  = (hdr.competitions || [])[0] || {};
+    var teams = comp.competitors || [];
+    var away  = teams.find(function(t){ return t.homeAway === 'away'; }) || teams[0] || {};
+    var home  = teams.find(function(t){ return t.homeAway === 'home'; }) || teams[1] || {};
+
+    var status = ((comp.status || {}).type || {}).description || '';
+    if (status) sub.textContent = status.toUpperCase();
+
+    var aScore = parseInt(away.score) || 0;
+    var hScore = parseInt(home.score) || 0;
+    var aWin   = aScore > hScore;
+    var hWin   = hScore > aScore;
+    var aName  = (away.team || {}).shortDisplayName || awayName;
+    var hName  = (home.team || {}).shortDisplayName || homeName;
+    var aAbbr  = (away.team || {}).abbreviation || aName.substring(0,3).toUpperCase();
+    var hAbbr  = (home.team || {}).abbreviation || hName.substring(0,3).toUpperCase();
+    var aRec   = ((away.records || [])[0] || {}).summary || '';
+    var hRec   = ((home.records || [])[0] || {}).summary || '';
+
+    var html = '';
+
+    // Score header
+    html += '<div class="bs-score-row">' +
+      '<div class="bs-team"><div class="bs-tname">' + aName + '</div>' +
+        (aRec ? '<div class="bs-trec">' + aRec + '</div>' : '') + '</div>' +
+      '<div class="bs-score ' + (aWin?'bs-win':'bs-lose') + '">' + aScore + '</div>' +
+      '<div class="bs-vs">@</div>' +
+      '<div class="bs-score ' + (hWin?'bs-win':'bs-lose') + '">' + hScore + '</div>' +
+      '<div class="bs-team" style="text-align:right"><div class="bs-tname">' + hName + '</div>' +
+        (hRec ? '<div class="bs-trec">' + hRec + '</div>' : '') + '</div>' +
+    '</div>';
+
+    // ── Linescore ─────────────────────────────────────────────────────────────
+    var aLS = away.linescores || [];
+    var hLS = home.linescores || [];
+    if (aLS.length) {
+      html += '<div class="bs-section"><div class="bs-section-title">LINESCORE</div>';
+      html += '<div style="overflow-x:auto"><table class="bs-linescore"><thead><tr><th></th>';
+      for (var i = 0; i < aLS.length; i++) html += '<th>' + (i+1) + '</th>';
+      html += '<th class="bs-tot">R</th></tr></thead><tbody>';
+      // Away row
+      html += '<tr><td class="bs-lbl">' + aAbbr + '</td>';
+      for (var i2 = 0; i2 < aLS.length; i2++) {
+        var av = (aLS[i2].value !== undefined && aLS[i2].value !== null) ? aLS[i2].value : '-';
+        html += '<td>' + av + '</td>';
+      }
+      html += '<td class="bs-tot">' + aScore + '</td></tr>';
+      // Home row
+      html += '<tr><td class="bs-lbl">' + hAbbr + '</td>';
+      for (var i3 = 0; i3 < aLS.length; i3++) {
+        var hv = (hLS[i3] && hLS[i3].value !== undefined) ? hLS[i3].value : '-';
+        html += '<td>' + hv + '</td>';
+      }
+      html += '<td class="bs-tot">' + hScore + '</td></tr>';
+      html += '</tbody></table></div></div>';
+    }
+
+    // ── Team hitting / pitching stats from boxscore ───────────────────────────
+    // ESPN college baseball returns team-level stats (not individual player rows)
+    // Structure: data.boxscore.teams[] each has statistics:[{name,displayValue,label}]
+    var bxTeams = (data.boxscore || {}).teams || [];
+
+    if (bxTeams.length) {
+      // Build a side-by-side team stats table
+      // Collect all stat names from first team, then map both teams
+      var teamA = bxTeams[0] || {};
+      var teamB = bxTeams[1] || {};
+      var teamAName = (teamA.team || {}).shortDisplayName || aName;
+      var teamBName = (teamB.team || {}).shortDisplayName || hName;
+      var statsA = teamA.statistics || [];
+      var statsB = teamB.statistics || [];
+
+      // Group by category name
+      var cats = {};
+      statsA.forEach(function(s) { cats[s.name] = { label: s.label || s.name, a: s.displayValue || s.value || '—', b: '—' }; });
+      statsB.forEach(function(s) {
+        if (cats[s.name]) cats[s.name].b = s.displayValue || s.value || '—';
+        else cats[s.name] = { label: s.label || s.name, a: '—', b: s.displayValue || s.value || '—' };
+      });
+
+      var catKeys = Object.keys(cats);
+      if (catKeys.length) {
+        html += '<div class="bs-section"><div class="bs-section-title">TEAM STATS</div>';
+        html += '<table class="bs-table"><thead><tr><th>STAT</th><th class="r">' +
+          teamAName.toUpperCase() + '</th><th class="r">' + teamBName.toUpperCase() + '</th></tr></thead><tbody>';
+        catKeys.forEach(function(k) {
+          var c = cats[k];
+          html += '<tr><td>' + c.label + '</td><td class="r">' + c.a + '</td><td class="r">' + c.b + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+    }
+
+    // ── W/L/S pitchers from leaders (already in our allGames data) ────────────
+    var game = null;
+    for (var gi = 0; gi < allGames.length; gi++) {
+      if (allGames[gi].id === gameId) { game = allGames[gi]; break; }
+    }
+    // Also try from header leaders
+    var wPitcher = '', lPitcher = '', sPitcher = '';
+    if (data.leaders) {
+      data.leaders.forEach(function(l) {
+        var ldr = (l.leaders || [])[0];
+        if (!ldr || !ldr.athlete) return;
+        var n = ldr.athlete.shortName || ldr.athlete.displayName || '';
+        if (l.abbreviation === 'W') wPitcher = n;
+        else if (l.abbreviation === 'L') lPitcher = n;
+        else if (l.abbreviation === 'SV') sPitcher = n;
+      });
+    }
+    if (!wPitcher && game && game.pitchers.winner && game.pitchers.winner.athlete) {
+      wPitcher = game.pitchers.winner.athlete.shortName || '';
+    }
+    if (!lPitcher && game && game.pitchers.loser && game.pitchers.loser.athlete) {
+      lPitcher = game.pitchers.loser.athlete.shortName || '';
+    }
+
+    if (wPitcher || lPitcher || sPitcher) {
+      html += '<div class="bs-section"><div class="bs-section-title">PITCHING DECISION</div>';
+      html += '<table class="bs-table"><tbody>';
+      if (wPitcher) html += '<tr><td class="bs-pitrow-w">W</td><td>' + wPitcher + '</td></tr>';
+      if (lPitcher) html += '<tr><td class="bs-pitrow-l">L</td><td>' + lPitcher + '</td></tr>';
+      if (sPitcher) html += '<tr><td class="bs-pitrow-s">SV</td><td>' + sPitcher + '</td></tr>';
+      html += '</tbody></table></div>';
+    }
+
+    // ── ESPN link ─────────────────────────────────────────────────────────────
+    html += '<div style="text-align:center;padding:12px 0 4px">' +
+      '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
+      '" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px;letter-spacing:2px">' +
+      'FULL BOX SCORE ON ESPN &#8599;</a></div>';
+
+    body.innerHTML = html;
+
+  } catch(e) {
+    console.error('renderBoxScore error:', e);
+    body.innerHTML = '<div class="bs-error">&#9918; ERROR LOADING BOX SCORE<br><br>' +
+      '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
+      '" target="_blank" style="color:var(--accent);letter-spacing:2px;font-size:10px">VIEW ON ESPN &#8599;</a></div>';
+  }
+}
 
 function renderBoxScore(data, body, sub, gameId) {
   try {
