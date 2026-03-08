@@ -749,7 +749,7 @@ function buildCard(g) {
   var gcUrl  = 'https://www.espn.com/college-baseball/game/_/gameId/' + g.id;
   var lHtml = '<div class="glinks">';
   if (live) lHtml += '<a class="glink pri" href="' + gcUrl + '" target="_blank" rel="noopener">&#9654; GAMECAST</a>';
-  if (!sched) lHtml += '<button class="glink" onclick="openBoxScore(\'' + g.id + '\',\'' + g.away.name.replace(/'/g,'') + '\',\'' + g.home.name.replace(/'/g,'') + '\')">&#9776; BOX SCORE</button>';
+  if (!sched) lHtml += '<button class="glink bs-btn" data-gameid="' + g.id + '">&#9776; BOX SCORE</button>';
   lHtml += '<a class="glink" href="' + gcUrl + '" target="_blank" rel="noopener">&#8599; ESPN</a>';
   lHtml += '</div>';
 
@@ -1008,7 +1008,14 @@ for (var sti = 0; sti < stabs.length; sti++) {
 }
 
 // ── Game Summary Modal (no external API — uses already-loaded scoreboard data) ─
-window.openBoxScore = function(gameId, awayName, homeName) {
+document.getElementById('main').addEventListener('click', function(e) {
+  var btn = e.target.closest('.bs-btn');
+  if (!btn) return;
+  var gameId = btn.getAttribute('data-gameid');
+  if (gameId) openBoxScore(gameId);
+});
+
+function openBoxScore(gameId) {
   var overlay = document.getElementById('bsOverlay');
   var title   = document.getElementById('bsTitle');
   var sub     = document.getElementById('bsSubtitle');
@@ -1024,7 +1031,7 @@ window.openBoxScore = function(gameId, awayName, homeName) {
   }
 
   if (!game) {
-    title.textContent = awayName + ' @ ' + homeName;
+    title.textContent = 'GAME SUMMARY';
     sub.textContent   = '';
     body.innerHTML    = '<div class="bs-error">&#9918; GAME DATA NOT FOUND<br><br>' +
       '<a href="https://www.espn.com/college-baseball/game/_/gameId/' + gameId +
@@ -1176,9 +1183,7 @@ window.openBoxScore = function(gameId, awayName, homeName) {
   html += '</div>';
 
   body.innerHTML = html;
-
-  // ── NOTE: old ESPN API fetch block removed — all data from scoreboard ─────────
-};
+}
 
 // Modal close handlers
 document.getElementById('bsClose').addEventListener('click', function() {
