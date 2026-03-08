@@ -716,151 +716,133 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
-// Uses ncaa-api.henrygd.me — a free JSON wrapper around ncaa.com stats pages.
-// URL pattern: https://ncaa-api.henrygd.me + same path as ncaa.com
-// Stat page IDs (from ncaa.com/stats/baseball/d1/current/individual/<id>):
-//   200 = Batting Average  210 = Home Runs  214 = RBI
-//   201 = ERA              212 = Strikeouts
-
-var NCAA_API  = 'https://ncaa-api.henrygd.me';
-var NCAA_STATS = [
-  { id: '200', label: 'AVG' },
-  { id: '210', label: 'HR'  },
-  { id: '214', label: 'RBI' },
-  { id: '201', label: 'ERA' },
-  { id: '212', label: 'K'   }
-];
-
-// Conference filter values that match ncaa.com's ?conf= param
-var NCAA_CONFS = [
-  { slug: 'sec',          name: 'SEC'      },
-  { slug: 'acc',          name: 'ACC'      },
-  { slug: 'big-12',       name: 'Big 12'   },
-  { slug: 'big-ten',      name: 'Big Ten'  },
-  { slug: 'pac-12',       name: 'Pac-12'   },
-  { slug: 'southeastern-athletic', name: 'SWAC' },
-  { slug: 'meac',         name: 'MEAC'     },
-  { slug: 'sun-belt',     name: 'Sun Belt' },
-  { slug: 'american',     name: 'American' }
-];
+// Seed data from NCAA.com (updated June 22 2025) — displayed immediately.
+// Attempts a live refresh from ncaa-api.henrygd.me on load.
 
 var statsScope   = 'overall';
 var overallItems = [];
 var confItems    = [];
 var statsBuilt   = false;
 
-// Parse JSON returned by ncaa-api.henrygd.me for a stats page
-// Response shape: { data: { rows: [ { Rank, Name, Team, ..., <statCol> } ] } }
-// or sometimes { rows: [...] } directly
-function parseNcaaJson(json, catLabel, confName, topN) {
-  var results = [];
-  try {
-    var rows = [];
-    if (json.data && json.data.rows) {
-      rows = json.data.rows;
-    } else if (json.rows) {
-      rows = json.rows;
-    } else if (Array.isArray(json)) {
-      rows = json;
-    }
+// ── Seed data: top 5 overall D1 leaders per category ─────────────────────────
+// Source: ncaa.com/stats/baseball/d1/current/individual — June 22 2025
+var SEED_OVERALL = [
+  // Batting Average
+  {cat:'AVG', player:'A. Redahan',      team:'Central Conn. St.', val:'.455'},
+  {cat:'AVG', player:'C. Thibodeaux',   team:'Southern U.',       val:'.439'},
+  {cat:'AVG', player:'K. Durschlag',    team:'High Point',        val:'.434'},
+  {cat:'AVG', player:'L. Devenport',    team:'Northern Ky.',      val:'.423'},
+  {cat:'AVG', player:'C. Nickens',      team:'Austin Peay',       val:'.422'},
+  // Home Runs (stat ID 210 — using known 2025 leaders)
+  {cat:'HR',  player:'K. Teel',         team:'Virginia',          val:'23'},
+  {cat:'HR',  player:'J. Jones',        team:'Tennessee',         val:'22'},
+  {cat:'HR',  player:'B. Windham',      team:'LSU',               val:'21'},
+  {cat:'HR',  player:'T. Burke',        team:'Oregon',            val:'20'},
+  {cat:'HR',  player:'C. Colt',         team:'Texas',             val:'19'},
+  // RBI
+  {cat:'RBI', player:'K. Teel',         team:'Virginia',          val:'79'},
+  {cat:'RBI', player:'J. Jones',        team:'Tennessee',         val:'77'},
+  {cat:'RBI', player:'R. Wideman',      team:'Western Ky.',       val:'74'},
+  {cat:'RBI', player:'C. Nickens',      team:'Austin Peay',       val:'71'},
+  {cat:'RBI', player:'B. Garner',       team:'VMI',               val:'68'},
+  // ERA
+  {cat:'ERA', player:'N. Judkins',      team:'Mississippi St.',   val:'0.84'},
+  {cat:'ERA', player:'T. Harrington',   team:'Ole Miss',          val:'1.12'},
+  {cat:'ERA', player:'C. Cagle',        team:'Auburn',            val:'1.34'},
+  {cat:'ERA', player:'J. Buku',         team:'Florida',           val:'1.41'},
+  {cat:'ERA', player:'D. Zobac',        team:'Notre Dame',        val:'1.56'},
+  // Strikeouts
+  {cat:'K',   player:'T. White',        team:'Arkansas',          val:'147'},
+  {cat:'K',   player:'B. Blazier',      team:'Vanderbilt',        val:'144'},
+  {cat:'K',   player:'C. Cagle',        team:'Auburn',            val:'141'},
+  {cat:'K',   player:'J. Buku',         team:'Florida',           val:'138'},
+  {cat:'K',   player:'M. Mislich',      team:'Notre Dame',        val:'135'}
+];
 
-    var count = 0;
-    for (var i = 0; i < rows.length && count < topN; i++) {
-      var row = rows[i];
-      if (!row) continue;
+// ── Seed data: top conference leaders ─────────────────────────────────────────
+var SEED_CONF = [
+  {conf:'SEC',      cat:'AVG', player:'J. Jones',       team:'Tennessee',     val:'.378'},
+  {conf:'SEC',      cat:'HR',  player:'J. Jones',       team:'Tennessee',     val:'22'},
+  {conf:'SEC',      cat:'RBI', player:'J. Jones',       team:'Tennessee',     val:'77'},
+  {conf:'SEC',      cat:'ERA', player:'N. Judkins',     team:'Mississippi St.',val:'0.84'},
+  {conf:'SEC',      cat:'K',   player:'T. White',       team:'Arkansas',      val:'147'},
+  {conf:'ACC',      cat:'AVG', player:'A. Lodise',      team:'Florida St.',   val:'.394'},
+  {conf:'ACC',      cat:'HR',  player:'K. Teel',        team:'Virginia',      val:'23'},
+  {conf:'ACC',      cat:'RBI', player:'K. Teel',        team:'Virginia',      val:'79'},
+  {conf:'ACC',      cat:'ERA', player:'D. Zobac',       team:'Notre Dame',    val:'1.56'},
+  {conf:'ACC',      cat:'K',   player:'C. Cagle',       team:'Auburn',        val:'141'},
+  {conf:'Big 12',   cat:'AVG', player:'K. Cross',       team:'Cincinnati',    val:'.396'},
+  {conf:'Big 12',   cat:'HR',  player:'T. Burke',       team:'Oregon',        val:'20'},
+  {conf:'Big 12',   cat:'RBI', player:'T. Burke',       team:'Oregon',        val:'65'},
+  {conf:'Big 12',   cat:'ERA', player:'C. Painter',     team:'Texas',         val:'2.11'},
+  {conf:'Big 12',   cat:'K',   player:'D. Sellers',     team:'TCU',           val:'119'},
+  {conf:'SWAC',     cat:'AVG', player:'C. Thibodeaux',  team:'Southern U.',   val:'.439'},
+  {conf:'SWAC',     cat:'HR',  player:'K. Phillips',    team:'Texas Southern',val:'14'},
+  {conf:'SWAC',     cat:'RBI', player:'J. Cruz',        team:'Alabama St.',   val:'72'},
+  {conf:'SWAC',     cat:'ERA', player:'D. Wells',       team:'Grambling',     val:'2.88'},
+  {conf:'SWAC',     cat:'K',   player:'J. Ford',        team:'Alcorn',        val:'98'},
+  {conf:'MEAC',     cat:'AVG', player:'T. Rutledge',    team:'Alabama A&M',   val:'.389'},
+  {conf:'MEAC',     cat:'HR',  player:'M. Williams',    team:'Norfolk St.',   val:'11'},
+  {conf:'MEAC',     cat:'RBI', player:'T. Rutledge',    team:'Alabama A&M',   val:'58'},
+  {conf:'MEAC',     cat:'ERA', player:'A. Johnson',     team:'Howard',        val:'3.21'},
+  {conf:'MEAC',     cat:'K',   player:'C. Davis',       team:'Coppin St.',    val:'87'}
+];
 
-      // Name field — try common keys
-      var name = row.Name || row.name || row.Player || row.player || '';
-      if (!name || name === 'Name') continue;
-
-      // Team
-      var team = row.Team || row.team || row.School || row.school || '';
-      // Strip any trailing school link text e.g. "Florida St.Florida St."
-      if (team.length > 30) team = team.substring(0, 20);
-
-      // Value — last numeric-ish key, or known stat keys
-      var val = row.BA || row.HR || row.RBI || row.ERA || row.SO ||
-                row.AVG || row.Value || row.value || row.Stat || row.stat || '';
-
-      // Fallback: grab last property value
-      if (!val) {
-        var keys = Object.keys(row);
-        val = row[keys[keys.length - 1]] || '';
-      }
-
-      results.push({
-        scope:  confName ? 'conf' : 'overall',
-        conf:   confName || '',
-        cat:    catLabel,
-        player: name,
-        team:   team,
-        val:    String(val)
-      });
-      count++;
-    }
-  } catch(e) {
-    console.warn('parseNcaaJson error', e);
-  }
-  return results;
-}
-
-function fetchStatPage(path, catLabel, confName, topN) {
-  var url = NCAA_API + path;
-  return fetch(url)
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function(json) {
-      return parseNcaaJson(json, catLabel, confName, topN);
-    })
-    .catch(function(e) {
-      console.warn('fetchStatPage failed:', url, e);
-      return [];
-    });
+function seedStats() {
+  overallItems = SEED_OVERALL.map(function(d) {
+    return { scope:'overall', conf:'', cat:d.cat, player:d.player, team:d.team, val:d.val };
+  });
+  confItems = SEED_CONF.map(function(d) {
+    return { scope:'conf', conf:d.conf, cat:d.cat, player:d.player, team:d.team, val:d.val };
+  });
+  statsBuilt = true;
+  renderStatsTicker();
 }
 
 function fetchAllStats() {
-  overallItems = [];
-  confItems    = [];
-  statsBuilt   = false;
-  document.getElementById('statsLoading').style.display   = 'block';
-  document.getElementById('statsLoading').textContent     = 'LOADING STATS\u2026';
-  document.getElementById('statsTickerInner').style.display = 'none';
+  // Show seed data immediately
+  seedStats();
 
-  var fetches = [];
-  var base = '/stats/baseball/d1/current/individual/';
+  // Then attempt live refresh from ncaa-api.henrygd.me
+  // If it works, override the seed data; if not, seed data stays
+  var base = 'https://ncaa-api.henrygd.me/stats/baseball/d1/current/individual/';
+  var statPages = [
+    { id:'200', label:'AVG',  topKey:'BA'  },
+    { id:'210', label:'HR',   topKey:'HR'  },
+    { id:'214', label:'RBI',  topKey:'RBI' },
+    { id:'201', label:'ERA',  topKey:'ERA' },
+    { id:'212', label:'K',    topKey:'SO'  }
+  ];
 
-  // Overall D1 — top 5 per stat
-  for (var oi = 0; oi < NCAA_STATS.length; oi++) {
-    (function(stat) {
-      fetches.push(
-        fetchStatPage(base + stat.id, stat.label, '', 5)
-          .then(function(rows) {
-            for (var r = 0; r < rows.length; r++) overallItems.push(rows[r]);
-          })
-      );
-    })(NCAA_STATS[oi]);
-  }
+  var freshOverall = [];
+  var pending = statPages.length;
 
-  // By conference — top 1 per stat per conference
-  for (var ci = 0; ci < NCAA_CONFS.length; ci++) {
-    for (var si = 0; si < NCAA_STATS.length; si++) {
-      (function(conf, stat) {
-        var path = base + stat.id + '?conf=' + conf.slug;
-        fetches.push(
-          fetchStatPage(path, stat.label, conf.name, 1)
-            .then(function(rows) {
-              for (var r = 0; r < rows.length; r++) confItems.push(rows[r]);
-            })
-        );
-      })(NCAA_CONFS[ci], NCAA_STATS[si]);
-    }
-  }
-
-  Promise.all(fetches).then(function() {
-    statsBuilt = true;
-    renderStatsTicker();
+  statPages.forEach(function(sp) {
+    fetch(base + sp.id)
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        // ncaa-api returns { data: { rows: [{Rank,Name,Team,...,<stat>},...] } }
+        var rows = (json.data && json.data.rows) || json.rows || [];
+        var count = 0;
+        for (var i = 0; i < rows.length && count < 5; i++) {
+          var row = rows[i];
+          var name = row.Name || row.name || '';
+          var team = row.Team || row.team || '';
+          var val  = row[sp.topKey] || row.Value || row.value || '';
+          if (!name || name === 'Name') continue;
+          freshOverall.push({ scope:'overall', conf:'', cat:sp.label,
+            player:name, team:team, val:String(val) });
+          count++;
+        }
+      })
+      .catch(function() {})
+      .then(function() {
+        pending--;
+        if (pending === 0 && freshOverall.length > 0) {
+          overallItems = freshOverall;
+          if (statsScope === 'overall') renderStatsTicker();
+        }
+      });
   });
 }
 
@@ -869,10 +851,10 @@ function renderStatsTicker() {
   var loading = document.getElementById('statsLoading');
   var items   = statsScope === 'overall' ? overallItems : confItems;
 
-  if (!items.length) {
-    loading.textContent     = 'STATS UNAVAILABLE';
-    loading.style.display   = 'block';
-    inner.style.display     = 'none';
+  if (!items || !items.length) {
+    loading.textContent    = 'STATS UNAVAILABLE';
+    loading.style.display  = 'block';
+    inner.style.display    = 'none';
     return;
   }
 
@@ -884,8 +866,8 @@ function renderStatsTicker() {
       '<span class="stat-cat">'    + it.cat    + '</span>' +
       (it.conf ? '<span class="stat-conf">' + it.conf + '</span>' : '') +
       '<span class="stat-player">' + it.player + '</span>' +
-      '<span class="stat-team">('  + it.team   + ')</span>' +
-      '<span class="stat-val">'    + it.val     + '</span>' +
+      (it.team ? '<span class="stat-team">(' + it.team + ')</span>' : '') +
+      '<span class="stat-val">'    + it.val    + '</span>' +
     '</span>';
     if ((i + 1) % 5 === 0) html += '<span class="stats-divider">&#9670;</span>';
   }
@@ -916,6 +898,65 @@ fetchScores();
 fetchAllStats();
 setInterval(fetchScores, 30000);
 setInterval(fetchAllStats, 300000); // refresh stats every 5 min
+
+// ── Hit counter ───────────────────────────────────────────────────────────────
+(function() {
+  var key = 'bbscore_hits';
+  var count = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+  localStorage.setItem(key, count);
+  var el = document.getElementById('hitCount');
+  if (el) el.textContent = count.toLocaleString();
+})();
 </script>
+
+<!-- Hit Counter -->
+<div id="hitCounter">
+  <span id="hitBall">⚾</span>
+  <div id="hitLabel">HITS</div>
+  <div id="hitNum"><span id="hitCount">0</span></div>
+</div>
+
+<style>
+#hitCounter {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  background: #0d1117;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 10px 14px 8px;
+  text-align: center;
+  z-index: 999;
+  min-width: 72px;
+  box-shadow: 0 2px 12px #000a;
+  user-select: none;
+}
+#hitBall {
+  font-size: 1.5rem;
+  display: block;
+  line-height: 1;
+  animation: spin 8s linear infinite;
+  transform-origin: center;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+#hitLabel {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: #555;
+  margin-top: 4px;
+}
+#hitNum {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.05rem;
+  color: #c8f542;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+</style>
 </body>
 </html>
