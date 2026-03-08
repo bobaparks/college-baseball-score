@@ -1000,40 +1000,57 @@ window.openBoxScore = function(gameId, awayName, homeName) {
   var sub     = document.getElementById('bsSubtitle');
   var body    = document.getElementById('bsBody');
 
-  title.textContent = awayName + ' vs ' + homeName;
+  title.textContent = awayName + ' @ ' + homeName;
   sub.textContent   = '';
   body.innerHTML    = '<div class="bs-loading">LOADING BOX SCORE&hellip;</div>';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  var url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/summary?event=' + gameId;
+  // Use site.web.api.espn.com (the correct domain for summary endpoint)
+  var url = 'https://site.web.api.espn.com/apis/site/v2/sports/baseball/college-baseball/summary?region=us&lang=en&contentorigin=espn&event=' + gameId;
   fetch(url)
-    .then(function(r) { return r.json(); })
-    .then(function(data) { renderBoxScore(data, body, sub); })
-    .catch(function() {
-      body.innerHTML = '<div class="bs-error">⚾ UNABLE TO LOAD BOX SCORE<br><br>' +
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      renderBoxScore(data, body, sub, gameId);
+    })
+    .catch(function(err) {
+      console.error('Box score fetch error:', err);
+      body.innerHTML = '<div class="bs-error">&#9918; UNABLE TO LOAD BOX SCORE<br><br>' +
         '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
         '" target="_blank" style="color:var(--accent);letter-spacing:2px;font-size:10px">VIEW ON ESPN &#8599;</a></div>';
     });
-}
+};
 
-function renderBoxScore(data, body, sub) {
+function renderBoxScore(data, body, sub, gameId) {
   try {
-    var header = data.header || {};
-    var comps  = (header.competitions || [])[0] || {};
-    var teams  = comps.competitors || [];
-    var away   = teams.find(function(t){ return t.homeAway === 'away'; }) || teams[0] || {};
-    var home   = teams.find(function(t){ return t.homeAway === 'home'; }) || teams[1] || {};
-    var status = (comps.status || {});
-    var stType = (status.type || {}).description || '';
-    sub.textContent = stType.toUpperCase();
+    console.log('Box score raw data:', JSON.stringify(data).substring(0, 2000));
+
+    // ── Pull header info ───────────────────────────────────────────────────────
+    var hdr    = data.header || {};
+    var comp   = (hdr.competitions || [])[0] || {};
+    var teams  = comp.competitors || [];
+    var away   = null, home = null;
+    for (var i = 0; i < teams.length; i++) {
+      if (teams[i].homeAway === 'away') away = teams[i];
+      else home = teams[i];
+    }
+    if (!away) away = teams[0] || {};
+    if (!home) home = teams[1] || {};
+
+    var status  = ((comp.status || {}).type || {}).description || '';
+    sub.textContent = status.toUpperCase();
 
     var aScore = parseInt(away.score) || 0;
     var hScore = parseInt(home.score) || 0;
     var aWin   = aScore > hScore;
     var hWin   = hScore > aScore;
-    var aName  = (away.team || {}).shortDisplayName || awayName || 'Away';
-    var hName  = (home.team || {}).shortDisplayName || homeName || 'Home';
+    var aName  = (away.team || {}).shortDisplayName || (away.team || {}).displayName || 'Away';
+    var hName  = (home.team || {}).shortDisplayName || (home.team || {}).displayName || 'Home';
+    var aAbbr  = (away.team || {}).abbreviation || aName.substring(0,3).toUpperCase();
+    var hAbbr  = (home.team || {}).abbreviation || hName.substring(0,3).toUpperCase();
     var aRec   = ((away.records || [])[0] || {}).summary || '';
     var hRec   = ((home.records || [])[0] || {}).summary || '';
 
@@ -1054,130 +1071,135 @@ function renderBoxScore(data, body, sub) {
       '</div>' +
     '</div>';
 
-    // ── Linescore ─────────────────────────────────────────────────────────────
-    var bxComp = (data.boxscore || {});
-    var bxTeams = bxComp.teams || [];
-    // also try data.header linescores
+    // ── Linescore from header.competitions[0].competitors[].linescores ────────
     var aLS = away.linescores || [];
     var hLS = home.linescores || [];
     if (aLS.length) {
       html += '<div class="bs-section"><div class="bs-section-title">LINESCORE</div>';
-      html += '<div class="linescore"><table class="bs-linescore">';
-      var headRow = '<tr><th></th>';
-      var aRow2   = '<tr><td class="bs-lbl">' + (away.team || {}).abbreviation + '</td>';
-      var hRow2   = '<tr><td class="bs-lbl">' + (home.team || {}).abbreviation + '</td>';
-      var aT2 = 0, hT2 = 0;
-      for (var i = 0; i < aLS.length; i++) {
-        headRow += '<th>' + (i+1) + '</th>';
-        var av = (aLS[i].value !== undefined && aLS[i].value !== null) ? aLS[i].value : '-';
-        var hv = (hLS[i] && hLS[i].value !== undefined && hLS[i].value !== null) ? hLS[i].value : '-';
-        aRow2 += '<td>' + av + '</td>';
-        hRow2 += '<td>' + hv + '</td>';
-        if (typeof av === 'number') aT2 += av;
-        if (typeof hv === 'number') hT2 += hv;
+      html += '<table class="bs-linescore"><thead><tr><th></th>';
+      for (var li = 0; li < aLS.length; li++) html += '<th>' + (li + 1) + '</th>';
+      html += '<th class="bs-tot">R</th></tr></thead><tbody>';
+      html += '<tr><td class="bs-lbl">' + aAbbr + '</td>';
+      for (var li2 = 0; li2 < aLS.length; li2++) {
+        var av = (aLS[li2].value !== undefined && aLS[li2].value !== null) ? aLS[li2].value : '-';
+        html += '<td>' + av + '</td>';
       }
-      headRow += '<th class="bs-tot">R</th></tr>';
-      aRow2 += '<td class="bs-tot">' + aScore + '</td></tr>';
-      hRow2 += '<td class="bs-tot">' + hScore + '</td></tr>';
-      html += headRow + aRow2 + hRow2 + '</table></div></div>';
+      html += '<td class="bs-tot">' + aScore + '</td></tr>';
+      html += '<tr><td class="bs-lbl">' + hAbbr + '</td>';
+      for (var li3 = 0; li3 < aLS.length; li3++) {
+        var hv = (hLS[li3] && hLS[li3].value !== undefined && hLS[li3].value !== null) ? hLS[li3].value : '-';
+        html += '<td>' + hv + '</td>';
+      }
+      html += '<td class="bs-tot">' + hScore + '</td></tr>';
+      html += '</tbody></table></div>';
     }
 
-    // ── Batting stats ─────────────────────────────────────────────────────────
-    var batters = bxTeams;
-    if (batters.length) {
-      for (var ti = 0; ti < batters.length; ti++) {
-        var t = batters[ti];
-        var tname = (t.team || {}).shortDisplayName || (ti === 0 ? aName : hName);
-        var stats = t.statistics || [];
-        var batStat = null;
-        for (var si = 0; si < stats.length; si++) {
-          if (stats[si].name === 'batting' || stats[si].type === 'batting') { batStat = stats[si]; break; }
+    // ── Boxscore player stats ─────────────────────────────────────────────────
+    // ESPN college baseball: data.boxscore.players[] (NOT data.boxscore.teams[])
+    // Each entry: { team:{}, statistics:[{ name:'batting'|'pitching', keys:[], labels:[], athletes:[{athlete:{},stats:[]}] }] }
+    var bxPlayers = (data.boxscore || {}).players || (data.boxscore || {}).teams || [];
+
+    // Helper to find a stat group by name
+    function findStatGroup(statsArr, typeName) {
+      if (!statsArr) return null;
+      for (var s = 0; s < statsArr.length; s++) {
+        var n = (statsArr[s].name || '').toLowerCase();
+        var t = (statsArr[s].type || '').toLowerCase();
+        if (n === typeName || t === typeName || n.indexOf(typeName) >= 0) return statsArr[s];
+      }
+      return null;
+    }
+
+    function renderStatTable(grp, teamName, sectionTitle) {
+      if (!grp) return '';
+      var labels   = grp.labels || grp.keys || [];
+      var athletes = grp.athletes || [];
+      if (!labels.length && !athletes.length) return '';
+
+      var t = '<div class="bs-section"><div class="bs-section-title">' + teamName.toUpperCase() + ' ' + sectionTitle + '</div>';
+      t += '<table class="bs-table"><thead><tr><th>PLAYER</th>';
+      for (var c = 0; c < labels.length; c++) t += '<th class="r">' + labels[c] + '</th>';
+      t += '</tr></thead><tbody>';
+
+      for (var a = 0; a < athletes.length; a++) {
+        var entry  = athletes[a];
+        var ath    = entry.athlete || {};
+        var pname  = ath.shortName || ath.displayName || ath.fullName || '—';
+        var pos    = (ath.position || {}).abbreviation || '';
+        var stats  = entry.stats || [];
+        var active = entry.active !== false && !entry.didNotPlay;
+
+        t += '<tr><td class="bs-name">' + pname;
+        if (pos) t += '<span class="bs-pos">' + pos + '</span>';
+        // W/L/S decoration for pitchers
+        var dec = entry.pitcher || entry.decision || '';
+        if (dec) t += ' <span class="bs-pitrow-' + dec.toLowerCase() + '">(' + dec + ')</span>';
+        t += '</td>';
+
+        if (!active && stats.length === 0) {
+          t += '<td colspan="' + labels.length + '" class="r" style="color:var(--muted);font-size:9px">DNP</td>';
+        } else {
+          for (var s2 = 0; s2 < labels.length; s2++) t += '<td class="r">' + (stats[s2] !== undefined ? stats[s2] : '-') + '</td>';
         }
-        if (!batStat) continue;
-        var cols = batStat.labels || [];
-        var athletes = batStat.athletes || [];
-        if (!athletes.length) continue;
+        t += '</tr>';
+      }
 
-        html += '<div class="bs-section"><div class="bs-section-title">' + tname.toUpperCase() + ' BATTING</div>';
-        html += '<table class="bs-table"><thead><tr><th>PLAYER</th>';
-        for (var ci = 0; ci < cols.length; ci++) html += '<th class="r">' + cols[ci] + '</th>';
-        html += '</tr></thead><tbody>';
+      // Totals
+      var totals = grp.totals || [];
+      if (totals.length) {
+        t += '<tr class="total-row"><td>TOTALS</td>';
+        for (var s3 = 0; s3 < labels.length; s3++) t += '<td class="r">' + (totals[s3] || '') + '</td>';
+        t += '</tr>';
+      }
 
-        for (var ai = 0; ai < athletes.length; ai++) {
-          var ath = athletes[ai];
-          if (!ath.athlete) continue;
-          var pname = ath.athlete.shortName || ath.athlete.displayName || '';
-          var pos   = ath.athlete.position ? ath.athlete.position.abbreviation : '';
-          var stats2 = ath.stats || [];
-          if (ath.didNotPlay) {
-            html += '<tr><td class="bs-name">' + pname + '<span class="bs-pos">' + pos + '</span></td><td colspan="' + cols.length + '" class="r" style="color:var(--muted)">DNP</td></tr>';
-            continue;
-          }
-          html += '<tr><td class="bs-name">' + pname + '<span class="bs-pos">' + pos + '</span></td>';
-          for (var si2 = 0; si2 < cols.length; si2++) html += '<td class="r">' + (stats2[si2] || '-') + '</td>';
-          html += '</tr>';
+      t += '</tbody></table></div>';
+      return t;
+    }
+
+    // Render batting then pitching for each team
+    for (var pi = 0; pi < bxPlayers.length; pi++) {
+      var entry2   = bxPlayers[pi];
+      var teamName = (entry2.team || {}).shortDisplayName || (entry2.team || {}).displayName || ('Team ' + (pi + 1));
+      var statsArr = entry2.statistics || [];
+
+      var batGrp = findStatGroup(statsArr, 'batting');
+      var pitGrp = findStatGroup(statsArr, 'pitching');
+
+      html += renderStatTable(batGrp, teamName, 'BATTING');
+      html += renderStatTable(pitGrp, teamName, 'PITCHING');
+    }
+
+    // ── If no player stats available, show W/L pitchers + note ───────────────
+    if (!bxPlayers.length) {
+      // Try to pull W/L pitchers from scoreboard leaders (already in allGames)
+      var game = null;
+      for (var gi = 0; gi < allGames.length; gi++) {
+        if (allGames[gi].id === gameId) { game = allGames[gi]; break; }
+      }
+      if (game && (game.pitchers.winner || game.pitchers.loser)) {
+        html += '<div class="bs-section"><div class="bs-section-title">PITCHING DECISION</div>';
+        html += '<table class="bs-table"><tbody>';
+        if (game.pitchers.winner && game.pitchers.winner.athlete) {
+          html += '<tr><td class="bs-name bs-pitrow-w">' + (game.pitchers.winner.athlete.shortName || '') + ' (W)</td></tr>';
         }
-
-        // Totals row
-        var totals = batStat.totals || [];
-        if (totals.length) {
-          html += '<tr class="total-row"><td>TOTALS</td>';
-          for (var ti2 = 0; ti2 < cols.length; ti2++) html += '<td class="r">' + (totals[ti2] || '') + '</td>';
-          html += '</tr>';
+        if (game.pitchers.loser && game.pitchers.loser.athlete) {
+          html += '<tr><td class="bs-name bs-pitrow-l">' + (game.pitchers.loser.athlete.shortName || '') + ' (L)</td></tr>';
         }
         html += '</tbody></table></div>';
       }
+      html += '<div class="bs-error" style="padding:16px 0 8px">Detailed box score not available.<br>' +
+        '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
+        '" target="_blank" style="color:var(--accent);font-size:10px;letter-spacing:2px">VIEW FULL BOX SCORE ON ESPN &#8599;</a></div>';
     }
 
-    // ── Pitching stats ────────────────────────────────────────────────────────
-    if (batters.length) {
-      for (var ti3 = 0; ti3 < batters.length; ti3++) {
-        var t2 = batters[ti3];
-        var tname2 = (t2.team || {}).shortDisplayName || (ti3 === 0 ? aName : hName);
-        var stats3 = t2.statistics || [];
-        var pitStat = null;
-        for (var si3 = 0; si3 < stats3.length; si3++) {
-          if (stats3[si3].name === 'pitching' || stats3[si3].type === 'pitching') { pitStat = stats3[si3]; break; }
-        }
-        if (!pitStat) continue;
-        var cols2 = pitStat.labels || [];
-        var athletes2 = pitStat.athletes || [];
-        if (!athletes2.length) continue;
-
-        html += '<div class="bs-section"><div class="bs-section-title">' + tname2.toUpperCase() + ' PITCHING</div>';
-        html += '<table class="bs-table"><thead><tr><th>PLAYER</th>';
-        for (var ci2 = 0; ci2 < cols2.length; ci2++) html += '<th class="r">' + cols2[ci2] + '</th>';
-        html += '</tr></thead><tbody>';
-
-        for (var ai2 = 0; ai2 < athletes2.length; ai2++) {
-          var ath2   = athletes2[ai2];
-          if (!ath2.athlete) continue;
-          var pname2 = ath2.athlete.shortName || ath2.athlete.displayName || '';
-          var stats4 = ath2.stats || [];
-          var dec    = ath2.pitcher || '';
-          var decCls = dec === 'W' ? 'bs-pitrow-w' : dec === 'L' ? 'bs-pitrow-l' : dec === 'S' ? 'bs-pitrow-s' : '';
-          html += '<tr><td class="bs-name ' + decCls + '">' + pname2 + (dec ? ' <span style="font-size:9px">(' + dec + ')</span>' : '') + '</td>';
-          for (var si4 = 0; si4 < cols2.length; si4++) html += '<td class="r">' + (stats4[si4] || '-') + '</td>';
-          html += '</tr>';
-        }
-        var totals2 = pitStat.totals || [];
-        if (totals2.length) {
-          html += '<tr class="total-row"><td>TOTALS</td>';
-          for (var ti4 = 0; ti4 < cols2.length; ti4++) html += '<td class="r">' + (totals2[ti4] || '') + '</td>';
-          html += '</tr>';
-        }
-        html += '</tbody></table></div>';
-      }
-    }
-
-    if (!html) {
-      html = '<div class="bs-error">BOX SCORE DATA NOT YET AVAILABLE</div>';
-    }
-    body.innerHTML = html;
+    body.innerHTML = html || '<div class="bs-error">BOX SCORE DATA NOT AVAILABLE</div>';
 
   } catch(e) {
-    console.error('renderBoxScore', e);
-    body.innerHTML = '<div class="bs-error">ERROR PARSING BOX SCORE</div>';
+    console.error('renderBoxScore error:', e);
+    // Show the error AND an ESPN fallback link rather than a dead end
+    body.innerHTML = '<div class="bs-error">&#9918; ERROR LOADING BOX SCORE<br><br>' +
+      '<a href="https://www.espn.com/college-baseball/boxscore/_/gameId/' + gameId +
+      '" target="_blank" style="color:var(--accent);letter-spacing:2px;font-size:10px">VIEW ON ESPN &#8599;</a></div>';
   }
 }
 
