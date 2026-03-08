@@ -667,26 +667,133 @@ let statusFilter = 'all';
 let searchQuery = '';
 let confFilter = 'all';
 
-// ─── HBCU D1 Baseball Programs ────────────────────────────────────────────────
-// SWAC and MEAC are the two D1 conferences composed entirely of HBCUs
-const HBCU_SCHOOLS = new Set([
-  // SWAC
-  'Alabama A&M','Alabama State','Alcorn State','Arkansas-Pine Bluff','Bethune-Cookman',
-  'Coppin State','Delaware State','Florida A&M','Grambling','Grambling State',
-  'Howard','Jackson State','Maryland-Eastern Shore','Mississippi Valley State',
-  'Morgan State','Norfolk State','North Carolina A&T','North Carolina Central',
-  'Prairie View A&M','Savannah State','South Carolina State','Southern',
-  'Southern University','Texas Southern','Alabama St','Florida AM',
-  // MEAC
-  'Coppin St','Delaware St','Howard','Morgan St','Norfolk St','NC A&T','NC Central',
-  'SC State','MD-Eastern Shore',
-  // Additional HBCUs with D1 baseball (independents or other conf)
-  'Bowie State','Central State','Fayetteville State','Hampton','Langston',
-  'Lincoln (PA)','Miles','Tuskegee','Virginia State','Virginia Union',
-  'Winston-Salem State','Xavier (LA)',
-]);
+// ─── School → Conference lookup (ESPN uses shortDisplayName) ──────────────────
+// Since ESPN's scoreboard API doesn't return conference data, we map by team name.
+const SCHOOL_CONF = {
+  // ACC
+  'Boston College':'ACC','Clemson':'ACC','Duke':'ACC','Florida State':'ACC',
+  'Georgia Tech':'ACC','Louisville':'ACC','Miami':'ACC','NC State':'ACC',
+  'North Carolina':'ACC','Notre Dame':'ACC','Pittsburgh':'ACC','Virginia':'ACC',
+  'Virginia Tech':'ACC','Wake Forest':'ACC',
+  // SEC
+  'Alabama':'SEC','Arkansas':'SEC','Auburn':'SEC','Florida':'SEC',
+  'Georgia':'SEC','Kentucky':'SEC','LSU':'SEC','Mississippi State':'SEC',
+  'Missouri':'SEC','Ole Miss':'SEC','South Carolina':'SEC','Tennessee':'SEC',
+  'Texas A&M':'SEC','Vanderbilt':'SEC',
+  // Big 12
+  'Baylor':'Big 12','BYU':'Big 12','Cincinnati':'Big 12','Houston':'Big 12',
+  'Iowa State':'Big 12','Kansas':'Big 12','Kansas State':'Big 12','Oklahoma':'Big 12',
+  'Oklahoma State':'Big 12','TCU':'Big 12','Texas':'Big 12','Texas Tech':'Big 12',
+  'UCF':'Big 12','West Virginia':'Big 12',
+  // Big Ten
+  'Illinois':'Big Ten','Indiana':'Big Ten','Iowa':'Big Ten','Maryland':'Big Ten',
+  'Michigan':'Big Ten','Michigan State':'Big Ten','Minnesota':'Big Ten',
+  'Nebraska':'Big Ten','Northwestern':'Big Ten','Ohio State':'Big Ten',
+  'Penn State':'Big Ten','Purdue':'Big Ten','Rutgers':'Big Ten',
+  // Pac-12
+  'Arizona':'Pac-12','Arizona State':'Pac-12','Cal':'Pac-12','Oregon':'Pac-12',
+  'Oregon State':'Pac-12','Stanford':'Pac-12','UCLA':'Pac-12','USC':'Pac-12',
+  'Utah':'Pac-12','Washington':'Pac-12','Washington State':'Pac-12',
+  // American Athletic
+  'Charlotte':'American','East Carolina':'American','Florida Atlantic':'American',
+  'Memphis':'American','Navy':'American','Rice':'American','South Florida':'American',
+  'Temple':'American','Tulane':'American','Tulsa':'American','UTSA':'American',
+  'Wichita State':'American',
+  // Sun Belt
+  'App State':'Sun Belt','Appalachian State':'Sun Belt','Arkansas State':'Sun Belt',
+  'Coastal Carolina':'Sun Belt','Georgia Southern':'Sun Belt','Georgia State':'Sun Belt',
+  'James Madison':'Sun Belt','Louisiana':'Sun Belt','UL Lafayette':'Sun Belt',
+  'Louisiana Monroe':'Sun Belt','UL Monroe':'Sun Belt','Old Dominion':'Sun Belt',
+  'South Alabama':'Sun Belt','Southern Miss':'Sun Belt','Texas State':'Sun Belt',
+  'Troy':'Sun Belt',
+  // Conference USA
+  'FIU':'C-USA','Florida International':'C-USA','Jacksonville State':'C-USA',
+  'Kennesaw State':'C-USA','Liberty':'C-USA','Louisiana Tech':'C-USA',
+  'Middle Tennessee':'C-USA','New Mexico State':'C-USA','Sam Houston':'C-USA',
+  'UTEP':'C-USA','Western Kentucky':'C-USA','WKU':'C-USA',
+  // Big West
+  'Cal Poly':'Big West','Cal State Fullerton':'Big West','CS Fullerton':'Big West',
+  'Cal State Northridge':'Big West','CSUN':'Big West','Hawaii':'Big West',
+  'Long Beach State':'Big West','UC Davis':'Big West','UC Irvine':'Big West',
+  'UC Riverside':'Big West','UC San Diego':'Big West','UC Santa Barbara':'Big West',
+  // Mountain West
+  'Air Force':'MWC','Fresno State':'MWC','Nevada':'MWC','New Mexico':'MWC',
+  'San Diego State':'MWC','San Jose State':'MWC','UNLV':'MWC','Utah State':'MWC',
+  'Wyoming':'MWC','Boise State':'MWC','Colorado State':'MWC',
+  // WCC
+  'Gonzaga':'WCC','LMU':'WCC','Loyola Marymount':'WCC','Pepperdine':'WCC',
+  'Portland':'WCC','San Diego':'WCC','San Francisco':'WCC','Santa Clara':'WCC',
+  'Saint Mary\'s':'WCC','St. Mary\'s':'WCC',
+  // Missouri Valley
+  'Bradley':'MVC','Dallas Baptist':'MVC','DBU':'MVC','Evansville':'MVC',
+  'Illinois State':'MVC','Indiana State':'MVC','Missouri State':'MVC',
+  'Southern Illinois':'MVC','SIU':'MVC','UIC':'MVC',
+  // Southern Conference
+  'The Citadel':'SoCon','East Tennessee State':'SoCon','ETSU':'SoCon',
+  'Furman':'SoCon','Mercer':'SoCon','Samford':'SoCon','UNC Greensboro':'SoCon',
+  'Western Carolina':'SoCon','Wofford':'SoCon','VMI':'SoCon',
+  // Southland
+  'Abilene Christian':'Southland','Houston Baptist':'Southland','HBU':'Southland',
+  'Incarnate Word':'Southland','Lamar':'Southland','McNeese':'Southland',
+  'McNeese State':'Southland','Nicholls':'Southland','Nicholls State':'Southland',
+  'Northwestern State':'Southland','SE Louisiana':'Southland',
+  'Southeastern Louisiana':'Southland','Stephen F. Austin':'Southland','SFA':'Southland',
+  'Texas A&M-Corpus Christi':'Southland',
+  // Ohio Valley
+  'Austin Peay':'OVC','Bellarmine':'OVC','Eastern Illinois':'OVC',
+  'Eastern Kentucky':'OVC','Illinois-Chicago':'OVC','Jacksonville':'OVC',
+  'Morehead State':'OVC','Murray State':'OVC','Southern Indiana':'OVC',
+  'Tennessee Martin':'OVC','UT Martin':'OVC','Tennessee State':'OVC',
+  'Tennessee Tech':'OVC',
+  // Patriot League
+  'Army':'Patriot','Bucknell':'Patriot','Holy Cross':'Patriot','Lafayette':'Patriot',
+  'Lehigh':'Patriot',
+  // Northeast
+  'Bryant':'NEC','Central Connecticut':'NEC','CCSU':'NEC','Fairleigh Dickinson':'NEC',
+  'LIU':'NEC','Long Island University':'NEC','Merrimack':'NEC',
+  'Sacred Heart':'NEC','Saint Francis':'NEC','Wagner':'NEC',
+  // MAC
+  'Ball State':'MAC','Bowling Green':'MAC','Buffalo':'MAC','Central Michigan':'MAC',
+  'Eastern Michigan':'MAC','Kent State':'MAC','Miami (OH)':'MAC','Northern Illinois':'MAC',
+  'Ohio':'MAC','Toledo':'MAC','Western Michigan':'MAC',
+  // WAC
+  'California Baptist':'WAC','Cal Baptist':'WAC','Grand Canyon':'WAC','GCU':'WAC',
+  'Sam Houston State':'WAC','Southern Utah':'WAC','Tarleton State':'WAC',
+  'Utah Valley':'WAC','UVU':'WAC',
+
+  // ── SWAC (all HBCU) ──
+  'Alabama A&M':'SWAC','Alabama State':'SWAC','Alcorn State':'SWAC',
+  'Arkansas-Pine Bluff':'SWAC','Bethune-Cookman':'SWAC','Florida A&M':'SWAC',
+  'Grambling':'SWAC','Grambling State':'SWAC','Jackson State':'SWAC',
+  'Mississippi Valley State':'SWAC','Prairie View A&M':'SWAC',
+  'Southern':'SWAC','Southern University':'SWAC','Texas Southern':'SWAC',
+
+  // ── MEAC (all HBCU) ──
+  'Coppin State':'MEAC','Delaware State':'MEAC','Howard':'MEAC',
+  'Maryland-Eastern Shore':'MEAC','Morgan State':'MEAC','Norfolk State':'MEAC',
+  'North Carolina A&T':'MEAC','North Carolina Central':'MEAC',
+  'Savannah State':'MEAC','South Carolina State':'MEAC',
+};
 
 const HBCU_CONFERENCES = new Set(['SWAC','MEAC']);
+
+function getConf(teamName) {
+  if (!teamName) return '';
+  // Direct match
+  if (SCHOOL_CONF[teamName]) return SCHOOL_CONF[teamName];
+  // Case-insensitive fallback
+  const lower = teamName.toLowerCase();
+  for (const [school, conf] of Object.entries(SCHOOL_CONF)) {
+    if (school.toLowerCase() === lower) return conf;
+  }
+  return '';
+}
+
+function isHBCU(game) {
+  const ac = getConf(game.away.name);
+  const hc = getConf(game.home.name);
+  return HBCU_CONFERENCES.has(ac) || HBCU_CONFERENCES.has(hc);
+}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 function formatDate(d) {
@@ -787,8 +894,6 @@ function parseGame(event) {
 
   const awayConf = away.team?.conferenceId || '';
   const homeConf = home.team?.conferenceId || '';
-  const awayConfName = away.team?.conference?.name || away.team?.conference?.abbreviation || '';
-  const homeConfName = home.team?.conference?.name || home.team?.conference?.abbreviation || '';
 
   const espnGameId = event.id;
 
@@ -809,7 +914,6 @@ function parseGame(event) {
       record: awayRecord,
       rank: awayRank,
       linescores: away.linescores || [],
-      confName: awayConfName,
     },
     home: {
       id: home.id,
@@ -821,7 +925,6 @@ function parseGame(event) {
       record: homeRecord,
       rank: homeRank,
       linescores: home.linescores || [],
-      confName: homeConfName,
     },
     linescores,
     situation,
@@ -849,7 +952,7 @@ function renderGames() {
     games = games.filter(isHBCU);
   } else if (confFilter !== 'all') {
     games = games.filter(g =>
-      g.away.confName?.includes(confFilter) || g.home.confName?.includes(confFilter)
+      getConf(g.away.name) === confFilter || getConf(g.home.name) === confFilter
     );
   }
 
@@ -932,8 +1035,8 @@ function gameCard(g) {
   const awayScoreHtml = isScheduled ? '' : `<span class="team-score ${awayScoreClass}">${g.away.score}</span>`;
   const homeScoreHtml = isScheduled ? '' : `<span class="team-score ${homeScoreClass}">${g.home.score}</span>`;
 
-  const awayHBCU = (HBCU_SCHOOLS.has(g.away.name) || HBCU_CONFERENCES.has(g.away.confName)) ? '<span class="hbcu-badge">HBCU</span>' : '';
-  const homeHBCU = (HBCU_SCHOOLS.has(g.home.name) || HBCU_CONFERENCES.has(g.home.confName)) ? '<span class="hbcu-badge">HBCU</span>' : '';
+  const awayHBCU = HBCU_CONFERENCES.has(getConf(g.away.name)) ? '<span class="hbcu-badge">HBCU</span>' : '';
+  const homeHBCU = HBCU_CONFERENCES.has(getConf(g.home.name)) ? '<span class="hbcu-badge">HBCU</span>' : '';
 
   // ESPN links
   const gamcastUrl = `https://www.espn.com/college-baseball/game/_/gameId/${g.espnGameId}`;
