@@ -34,6 +34,32 @@
   .tscore { color:var(--accent); font-family:'Bebas Neue',sans-serif; font-size:13px; }
   .tlive { color:var(--live); }
 
+  /* ── Stats ticker ── */
+  .stats-ticker-wrap { background:var(--bg); border-bottom:1px solid var(--border); }
+  .stats-ticker-tabs { display:flex; align-items:center; gap:0; border-bottom:1px solid var(--border); padding:0 16px; }
+  .stab { font-size:9px; letter-spacing:3px; color:var(--muted); padding:7px 14px; cursor:pointer;
+    border-bottom:2px solid transparent; transition:all .15s; background:none; border-top:none;
+    border-left:none; border-right:none; font-family:'DM Mono',monospace; }
+  .stab:hover { color:var(--text); }
+  .stab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .stab-label { font-size:9px; letter-spacing:3px; color:var(--muted); padding:7px 14px;
+    border-bottom:2px solid transparent; white-space:nowrap; }
+  .stats-ticker { overflow:hidden; padding:7px 0; position:relative; min-height:30px; }
+  .stats-ticker-inner { display:flex; gap:0; animation:sticker 60s linear infinite; white-space:nowrap; }
+  .stats-ticker-inner:hover { animation-play-state:paused; }
+  @keyframes sticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .stat-item { display:inline-flex; align-items:center; gap:8px; padding:0 24px;
+    border-right:1px solid var(--border); font-size:10px; flex-shrink:0; }
+  .stat-cat { color:var(--blue); letter-spacing:2px; font-size:9px; }
+  .stat-conf { color:var(--muted); letter-spacing:2px; font-size:8px; padding:1px 5px;
+    border:1px solid var(--border); border-radius:2px; }
+  .stat-player { color:var(--text); letter-spacing:.5px; }
+  .stat-team { color:var(--muted); font-size:9px; }
+  .stat-val { color:var(--accent); font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; }
+  .stats-loading { font-size:9px; letter-spacing:3px; color:var(--muted); padding:7px 16px; }
+  .stats-divider { display:inline-flex; align-items:center; padding:0 20px; color:var(--border);
+    font-size:16px; flex-shrink:0; }
+
   .date-strip { padding:12px 32px; display:flex; gap:4px; overflow-x:auto;
     border-bottom:1px solid var(--border); scrollbar-width:none; }
   .date-strip::-webkit-scrollbar { display:none; }
@@ -164,6 +190,19 @@
 <div class="ticker">
   <div class="ticker-inner" id="tickerInner">
     <span class="ticker-item">Loading scores&hellip;</span>
+  </div>
+</div>
+
+<!-- Stats ticker -->
+<div class="stats-ticker-wrap">
+  <div class="stats-ticker-tabs">
+    <span class="stab-label">STAT LEADERS</span>
+    <button class="stab active" data-scope="overall">OVERALL D1</button>
+    <button class="stab" data-scope="conf">BY CONFERENCE</button>
+  </div>
+  <div class="stats-ticker">
+    <div class="stats-loading" id="statsLoading">LOADING STATS&hellip;</div>
+    <div class="stats-ticker-inner" id="statsTickerInner" style="display:none"></div>
   </div>
 </div>
 
@@ -676,11 +715,201 @@ document.getElementById('searchInput').addEventListener('input', function() {
   renderGames();
 });
 
+// ── Stats ticker ──────────────────────────────────────────────────────────────
+
+var STAT_CATS = [
+  { key: 'battingAverage', label: 'AVG',  url: 'batting?sort=battingAverage&limit=5' },
+  { key: 'homeRuns',       label: 'HR',   url: 'batting?sort=homeRuns&limit=5' },
+  { key: 'RBIs',           label: 'RBI',  url: 'batting?sort=RBIs&limit=5' },
+  { key: 'ERA',            label: 'ERA',  url: 'pitching?sort=ERA&limit=5&order=asc' },
+  { key: 'strikeouts',     label: 'K',    url: 'pitching?sort=strikeouts&limit=5' }
+];
+
+// ESPN conference IDs for college baseball
+var CONF_IDS = [
+  { id: '1', name: 'SEC' },
+  { id: '2', name: 'ACC' },
+  { id: '8', name: 'Big 12' },
+  { id: '7', name: 'Big Ten' },
+  { id: '4', name: 'Pac-12' },
+  { id: '151', name: 'Sun Belt' },
+  { id: '11', name: 'American' },
+  { id: '12', name: 'C-USA' },
+  { id: '24', name: 'Big West' },
+  { id: '23', name: 'MWC' },
+  { id: '26', name: 'WCC' },
+  { id: '18', name: 'MVC' },
+  { id: '48', name: 'SoCon' },
+  { id: '31', name: 'Southland' },
+  { id: '46', name: 'OVC' },
+  { id: '57', name: 'MAC' },
+  { id: '62', name: 'SWAC' },
+  { id: '63', name: 'MEAC' }
+];
+
+var statsScope    = 'overall';
+var allStatItems  = [];   // { scope, conf, cat, player, team, val }
+var statsBuilt    = false;
+
+var ESPN_STATS_BASE = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/leaders/';
+
+function fetchAllStats() {
+  allStatItems = [];
+  statsBuilt = false;
+  document.getElementById('statsLoading').style.display = 'block';
+  document.getElementById('statsTickerInner').style.display = 'none';
+
+  var fetches = [];
+
+  // Overall D1 leaders — one request per stat
+  for (var i = 0; i < STAT_CATS.length; i++) {
+    (function(cat) {
+      fetches.push(
+        fetch(ESPN_STATS_BASE + cat.url)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var leaders = extractLeaders(data, cat.label, 'OVERALL', 3);
+            for (var x = 0; x < leaders.length; x++) allStatItems.push(leaders[x]);
+          })
+          .catch(function() {})
+      );
+    })(STAT_CATS[i]);
+  }
+
+  // Per-conference: fetch top 3 conferences × all 5 stats
+  // (limit to 6 conferences to keep load reasonable)
+  var confSubset = CONF_IDS.slice(0, 8);
+  for (var ci = 0; ci < confSubset.length; ci++) {
+    for (var si = 0; si < STAT_CATS.length; si++) {
+      (function(conf, cat) {
+        var urlWithConf = ESPN_STATS_BASE + cat.url + '&group=' + conf.id;
+        fetches.push(
+          fetch(urlWithConf)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              var leaders = extractLeaders(data, cat.label, conf.name, 1);
+              for (var x = 0; x < leaders.length; x++) allStatItems.push(leaders[x]);
+            })
+            .catch(function() {})
+        );
+      })(confSubset[ci], STAT_CATS[si]);
+    }
+  }
+
+  Promise.all(fetches).then(function() {
+    statsBuilt = true;
+    renderStatsTicker();
+  });
+}
+
+function extractLeaders(data, catLabel, confName, limit) {
+  var results = [];
+  try {
+    var cats = data.leaders || data.categories || [];
+    if (!cats.length && data.rows) {
+      // fallback: some endpoints return rows directly
+      for (var i = 0; i < Math.min(limit, data.rows.length); i++) {
+        var row = data.rows[i];
+        results.push({
+          scope: confName === 'OVERALL' ? 'overall' : 'conf',
+          conf: confName,
+          cat: catLabel,
+          player: (row.athlete && (row.athlete.shortName || row.athlete.displayName)) || row.name || '—',
+          team: (row.team && (row.team.abbreviation || row.team.shortDisplayName)) || '',
+          val: row.value || row.displayValue || '—'
+        });
+      }
+      return results;
+    }
+    for (var ci = 0; ci < cats.length; ci++) {
+      var cat = cats[ci];
+      var leaders = cat.leaders || cat.athletes || [];
+      for (var li = 0; li < Math.min(limit, leaders.length); li++) {
+        var ldr = leaders[li];
+        var athlete = ldr.athlete || ldr;
+        var pName = athlete.shortName || athlete.displayName || athlete.name || '—';
+        var tName = '';
+        if (ldr.team) tName = ldr.team.abbreviation || ldr.team.shortDisplayName || '';
+        else if (athlete.team) tName = athlete.team.abbreviation || athlete.team.shortDisplayName || '';
+        var val = ldr.value || ldr.displayValue || (ldr.statistics && ldr.statistics[0] && ldr.statistics[0].displayValue) || '—';
+        results.push({
+          scope: confName === 'OVERALL' ? 'overall' : 'conf',
+          conf: confName,
+          cat: catLabel,
+          player: pName,
+          team: tName,
+          val: val
+        });
+      }
+    }
+  } catch(e) { /* skip bad responses */ }
+  return results;
+}
+
+function renderStatsTicker() {
+  var inner = document.getElementById('statsTickerInner');
+  var loading = document.getElementById('statsLoading');
+
+  var items = allStatItems.filter(function(it) {
+    return statsScope === 'overall' ? it.scope === 'overall' : it.scope === 'conf';
+  });
+
+  if (!items.length) {
+    loading.textContent = 'NO STATS AVAILABLE';
+    loading.style.display = 'block';
+    inner.style.display = 'none';
+    return;
+  }
+
+  // Double for seamless loop
+  var doubled = items.concat(items);
+  var html = '';
+  for (var i = 0; i < doubled.length; i++) {
+    var it = doubled[i];
+    html += '<span class="stat-item">' +
+      '<span class="stat-cat">' + it.cat + '</span>' +
+      (it.scope === 'conf' ? '<span class="stat-conf">' + it.conf + '</span>' : '') +
+      '<span class="stat-player">' + it.player + '</span>' +
+      (it.team ? '<span class="stat-team">(' + it.team + ')</span>' : '') +
+      '<span class="stat-val">' + it.val + '</span>' +
+    '</span>';
+    // Section divider every 5 items
+    if ((i + 1) % 5 === 0) {
+      html += '<span class="stats-divider">&#9670;</span>';
+    }
+  }
+
+  inner.innerHTML = html;
+  loading.style.display = 'none';
+  inner.style.display = 'flex';
+
+  // Adjust animation speed based on item count
+  var duration = Math.max(30, items.length * 4);
+  inner.style.animationDuration = duration + 's';
+}
+
+// Stats tab controls
+var stabs = document.querySelectorAll('.stab');
+for (var sti = 0; sti < stabs.length; sti++) {
+  (function(tab) {
+    tab.addEventListener('click', function() {
+      for (var xi = 0; xi < stabs.length; xi++) stabs[xi].classList.remove('active');
+      tab.classList.add('active');
+      statsScope = tab.getAttribute('data-scope');
+      if (statsBuilt) {
+        renderStatsTicker();
+      }
+    });
+  })(stabs[sti]);
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 selDate = fmtDate(new Date());
 buildDateStrip();
 fetchScores();
+fetchAllStats();
 setInterval(fetchScores, 30000);
+setInterval(fetchAllStats, 300000); // refresh stats every 5 min
 </script>
 </body>
 </html>
