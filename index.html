@@ -716,83 +716,106 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
-// Source: NCAA.com stats pages (HTML tables), fetched via corsproxy.io
-// Stat IDs confirmed from ncaa.com/stats/baseball/d1/current/individual/<id>
-//   200 = Batting Average
-//   210 = Home Runs
-//   214 = RBI
-//   201 = ERA
-//   212 = Strikeouts
+// Uses ncaa-api.henrygd.me — a free JSON wrapper around ncaa.com stats pages.
+// URL pattern: https://ncaa-api.henrygd.me + same path as ncaa.com
+// Stat page IDs (from ncaa.com/stats/baseball/d1/current/individual/<id>):
+//   200 = Batting Average  210 = Home Runs  214 = RBI
+//   201 = ERA              212 = Strikeouts
 
+var NCAA_API  = 'https://ncaa-api.henrygd.me';
 var NCAA_STATS = [
-  { id: '200', label: 'AVG',  col: 'BA' },
-  { id: '210', label: 'HR',   col: 'HR' },
-  { id: '214', label: 'RBI',  col: 'RBI' },
-  { id: '201', label: 'ERA',  col: 'ERA' },
-  { id: '212', label: 'K',    col: 'SO' }
+  { id: '200', label: 'AVG' },
+  { id: '210', label: 'HR'  },
+  { id: '214', label: 'RBI' },
+  { id: '201', label: 'ERA' },
+  { id: '212', label: 'K'   }
 ];
 
-// NCAA conference slugs for the by-conf view
-// These match ncaa.com conference filter URLs
+// Conference filter values that match ncaa.com's ?conf= param
 var NCAA_CONFS = [
-  { slug: 'sec',        name: 'SEC' },
-  { slug: 'acc',        name: 'ACC' },
-  { slug: 'big-12',     name: 'Big 12' },
-  { slug: 'big-ten',    name: 'Big Ten' },
-  { slug: 'pac-12',     name: 'Pac-12' },
-  { slug: 'sun-belt',   name: 'Sun Belt' },
-  { slug: 'american',   name: 'American' },
-  { slug: 'swac',       name: 'SWAC' },
-  { slug: 'meac',       name: 'MEAC' }
+  { slug: 'sec',          name: 'SEC'      },
+  { slug: 'acc',          name: 'ACC'      },
+  { slug: 'big-12',       name: 'Big 12'   },
+  { slug: 'big-ten',      name: 'Big Ten'  },
+  { slug: 'pac-12',       name: 'Pac-12'   },
+  { slug: 'southeastern-athletic', name: 'SWAC' },
+  { slug: 'meac',         name: 'MEAC'     },
+  { slug: 'sun-belt',     name: 'Sun Belt' },
+  { slug: 'american',     name: 'American' }
 ];
 
 var statsScope   = 'overall';
-var overallItems = [];  // parsed from overall D1 pages
-var confItems    = [];  // parsed from conference pages
+var overallItems = [];
+var confItems    = [];
 var statsBuilt   = false;
 
-var PROXY = 'https://corsproxy.io/?url=';
-var NCAA_BASE = 'https://www.ncaa.com/stats/baseball/d1/current/individual/';
-
-// Parse an HTML string from an NCAA stats page and return top N rows
-function parseNcaaTable(html, catLabel, confName, topN) {
+// Parse JSON returned by ncaa-api.henrygd.me for a stats page
+// Response shape: { data: { rows: [ { Rank, Name, Team, ..., <statCol> } ] } }
+// or sometimes { rows: [...] } directly
+function parseNcaaJson(json, catLabel, confName, topN) {
   var results = [];
   try {
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(html, 'text/html');
-    var rows = doc.querySelectorAll('table tbody tr');
+    var rows = [];
+    if (json.data && json.data.rows) {
+      rows = json.data.rows;
+    } else if (json.rows) {
+      rows = json.rows;
+    } else if (Array.isArray(json)) {
+      rows = json;
+    }
+
     var count = 0;
     for (var i = 0; i < rows.length && count < topN; i++) {
-      var cells = rows[i].querySelectorAll('td');
-      if (cells.length < 4) continue;
-      // Typical columns: Rank | Name | Team | Cl | Position | G | ... | Stat
-      var name = cells[1] ? cells[1].textContent.trim() : '';
-      var team = cells[2] ? cells[2].textContent.trim() : '';
-      var val  = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : '';
+      var row = rows[i];
+      if (!row) continue;
+
+      // Name field — try common keys
+      var name = row.Name || row.name || row.Player || row.player || '';
       if (!name || name === 'Name') continue;
+
+      // Team
+      var team = row.Team || row.team || row.School || row.school || '';
+      // Strip any trailing school link text e.g. "Florida St.Florida St."
+      if (team.length > 30) team = team.substring(0, 20);
+
+      // Value — last numeric-ish key, or known stat keys
+      var val = row.BA || row.HR || row.RBI || row.ERA || row.SO ||
+                row.AVG || row.Value || row.value || row.Stat || row.stat || '';
+
+      // Fallback: grab last property value
+      if (!val) {
+        var keys = Object.keys(row);
+        val = row[keys[keys.length - 1]] || '';
+      }
+
       results.push({
-        scope: confName ? 'conf' : 'overall',
-        conf:  confName || '',
-        cat:   catLabel,
+        scope:  confName ? 'conf' : 'overall',
+        conf:   confName || '',
+        cat:    catLabel,
         player: name,
         team:   team,
-        val:    val
+        val:    String(val)
       });
       count++;
     }
-  } catch(e) { console.warn('parseNcaaTable error', e); }
+  } catch(e) {
+    console.warn('parseNcaaJson error', e);
+  }
   return results;
 }
 
-function fetchNcaaPage(url, catLabel, confName, topN) {
-  var proxied = PROXY + encodeURIComponent(url);
-  return fetch(proxied)
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      return parseNcaaTable(html, catLabel, confName, topN);
+function fetchStatPage(path, catLabel, confName, topN) {
+  var url = NCAA_API + path;
+  return fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(json) {
+      return parseNcaaJson(json, catLabel, confName, topN);
     })
     .catch(function(e) {
-      console.warn('fetchNcaaPage failed', url, e);
+      console.warn('fetchStatPage failed:', url, e);
       return [];
     });
 }
@@ -801,34 +824,35 @@ function fetchAllStats() {
   overallItems = [];
   confItems    = [];
   statsBuilt   = false;
-  document.getElementById('statsLoading').style.display = 'block';
-  document.getElementById('statsLoading').textContent   = 'LOADING STATS\u2026';
+  document.getElementById('statsLoading').style.display   = 'block';
+  document.getElementById('statsLoading').textContent     = 'LOADING STATS\u2026';
   document.getElementById('statsTickerInner').style.display = 'none';
 
   var fetches = [];
+  var base = '/stats/baseball/d1/current/individual/';
 
-  // ── Overall D1: top 5 per stat ──────────────────────────────────────────────
+  // Overall D1 — top 5 per stat
   for (var oi = 0; oi < NCAA_STATS.length; oi++) {
     (function(stat) {
-      var url = NCAA_BASE + stat.id;
       fetches.push(
-        fetchNcaaPage(url, stat.label, '', 5).then(function(rows) {
-          for (var r = 0; r < rows.length; r++) overallItems.push(rows[r]);
-        })
+        fetchStatPage(base + stat.id, stat.label, '', 5)
+          .then(function(rows) {
+            for (var r = 0; r < rows.length; r++) overallItems.push(rows[r]);
+          })
       );
     })(NCAA_STATS[oi]);
   }
 
-  // ── By conference: top 1 per stat per conference ────────────────────────────
-  // NCAA conf-filtered URL pattern: /stats/baseball/d1/current/individual/<id>?conf=<slug>
+  // By conference — top 1 per stat per conference
   for (var ci = 0; ci < NCAA_CONFS.length; ci++) {
     for (var si = 0; si < NCAA_STATS.length; si++) {
       (function(conf, stat) {
-        var url = NCAA_BASE + stat.id + '?conf=' + conf.slug;
+        var path = base + stat.id + '?conf=' + conf.slug;
         fetches.push(
-          fetchNcaaPage(url, stat.label, conf.name, 1).then(function(rows) {
-            for (var r = 0; r < rows.length; r++) confItems.push(rows[r]);
-          })
+          fetchStatPage(path, stat.label, conf.name, 1)
+            .then(function(rows) {
+              for (var r = 0; r < rows.length; r++) confItems.push(rows[r]);
+            })
         );
       })(NCAA_CONFS[ci], NCAA_STATS[si]);
     }
@@ -843,13 +867,12 @@ function fetchAllStats() {
 function renderStatsTicker() {
   var inner   = document.getElementById('statsTickerInner');
   var loading = document.getElementById('statsLoading');
-
-  var items = statsScope === 'overall' ? overallItems : confItems;
+  var items   = statsScope === 'overall' ? overallItems : confItems;
 
   if (!items.length) {
-    loading.textContent      = 'STATS UNAVAILABLE';
-    loading.style.display    = 'block';
-    inner.style.display      = 'none';
+    loading.textContent     = 'STATS UNAVAILABLE';
+    loading.style.display   = 'block';
+    inner.style.display     = 'none';
     return;
   }
 
@@ -858,20 +881,18 @@ function renderStatsTicker() {
   for (var i = 0; i < doubled.length; i++) {
     var it = doubled[i];
     html += '<span class="stat-item">' +
-      '<span class="stat-cat">' + it.cat + '</span>' +
+      '<span class="stat-cat">'    + it.cat    + '</span>' +
       (it.conf ? '<span class="stat-conf">' + it.conf + '</span>' : '') +
       '<span class="stat-player">' + it.player + '</span>' +
-      '<span class="stat-team">(' + it.team + ')</span>' +
-      '<span class="stat-val">' + it.val + '</span>' +
+      '<span class="stat-team">('  + it.team   + ')</span>' +
+      '<span class="stat-val">'    + it.val     + '</span>' +
     '</span>';
-    if ((i + 1) % 5 === 0) {
-      html += '<span class="stats-divider">&#9670;</span>';
-    }
+    if ((i + 1) % 5 === 0) html += '<span class="stats-divider">&#9670;</span>';
   }
 
   inner.innerHTML = html;
-  loading.style.display = 'none';
-  inner.style.display   = 'flex';
+  loading.style.display         = 'none';
+  inner.style.display           = 'flex';
   inner.style.animationDuration = Math.max(40, items.length * 3) + 's';
 }
 
