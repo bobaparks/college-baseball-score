@@ -818,76 +818,76 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
-// Seed data from NCAA.com (updated June 22 2025) — displayed immediately.
-// Attempts a live refresh from ncaa-api.henrygd.me on load.
+// Seed data from d1sportsnet.com — through March 05, 2026.
+// Attempts a live refresh from d1sportsnet.com via CORS proxy on load.
 
 var statsScope   = 'overall';
 var overallItems = [];
 var confItems    = [];
 var statsBuilt   = false;
 
-// ── Seed data: top 5 overall D1 leaders per category ─────────────────────────
-// Source: ncaa.com/stats/baseball/d1/current/individual — June 22 2025
+// ── Seed data: top D1 leaders per category ────────────────────────────────────
+// Source: d1sportsnet.com — through March 05, 2026
 var SEED_OVERALL = [
-  // Batting Average
-  {cat:'AVG', player:'A. Redahan',      team:'Central Conn. St.', val:'.455'},
-  {cat:'AVG', player:'C. Thibodeaux',   team:'Southern U.',       val:'.439'},
-  {cat:'AVG', player:'K. Durschlag',    team:'High Point',        val:'.434'},
-  {cat:'AVG', player:'L. Devenport',    team:'Northern Ky.',      val:'.423'},
-  {cat:'AVG', player:'C. Nickens',      team:'Austin Peay',       val:'.422'},
-  // Home Runs (stat ID 210 — using known 2025 leaders)
-  {cat:'HR',  player:'K. Teel',         team:'Virginia',          val:'23'},
-  {cat:'HR',  player:'J. Jones',        team:'Tennessee',         val:'22'},
-  {cat:'HR',  player:'B. Windham',      team:'LSU',               val:'21'},
-  {cat:'HR',  player:'T. Burke',        team:'Oregon',            val:'20'},
-  {cat:'HR',  player:'C. Colt',         team:'Texas',             val:'19'},
-  // RBI
-  {cat:'RBI', player:'K. Teel',         team:'Virginia',          val:'79'},
-  {cat:'RBI', player:'J. Jones',        team:'Tennessee',         val:'77'},
-  {cat:'RBI', player:'R. Wideman',      team:'Western Ky.',       val:'74'},
-  {cat:'RBI', player:'C. Nickens',      team:'Austin Peay',       val:'71'},
-  {cat:'RBI', player:'B. Garner',       team:'VMI',               val:'68'},
-  // ERA
-  {cat:'ERA', player:'N. Judkins',      team:'Mississippi St.',   val:'0.84'},
-  {cat:'ERA', player:'T. Harrington',   team:'Ole Miss',          val:'1.12'},
-  {cat:'ERA', player:'C. Cagle',        team:'Auburn',            val:'1.34'},
-  {cat:'ERA', player:'J. Buku',         team:'Florida',           val:'1.41'},
-  {cat:'ERA', player:'D. Zobac',        team:'Notre Dame',        val:'1.56'},
-  // Strikeouts
-  {cat:'K',   player:'T. White',        team:'Arkansas',          val:'147'},
-  {cat:'K',   player:'B. Blazier',      team:'Vanderbilt',        val:'144'},
-  {cat:'K',   player:'C. Cagle',        team:'Auburn',            val:'141'},
-  {cat:'K',   player:'J. Buku',         team:'Florida',           val:'138'},
-  {cat:'K',   player:'M. Mislich',      team:'Notre Dame',        val:'135'}
+  // Batting Average (through Mar 5)
+  {cat:'AVG', player:'D. Williams',     team:'Miami (FL)',        val:'.535'},
+  {cat:'AVG', player:'G. Mitchell',     team:'Iowa',              val:'.521'},
+  {cat:'AVG', player:'T. Griffith',     team:'Saint Marys (CA)',  val:'.515'},
+  {cat:'AVG', player:'M. Quatrani',     team:'Notre Dame',        val:'.514'},
+  {cat:'AVG', player:'B. Wright',       team:'South Alabama',     val:'.511'},
+  // Home Runs (through Feb 19)
+  {cat:'HR',  player:'B. Johnston',     team:'Vanderbilt',        val:'5'},
+  {cat:'HR',  player:'J. Brown',        team:'LSU',               val:'4'},
+  {cat:'HR',  player:'J. Jones',        team:'Wichita St.',       val:'4'},
+  {cat:'HR',  player:'C. Lunsford',     team:'Louisiana Tech',    val:'4'},
+  {cat:'HR',  player:'M. Rhoades',      team:'Butler',            val:'4'},
+  // RBI (through Feb 19)
+  {cat:'RBI', player:'D. Bermudez',     team:'Jacksonville',      val:'16'},
+  {cat:'RBI', player:'T. Armstrong',    team:'Baylor',            val:'15'},
+  {cat:'RBI', player:'D. Kennedy',      team:'Kansas St.',        val:'15'},
+  {cat:'RBI', player:'S. Guerra',       team:'Tarleton St.',      val:'13'},
+  {cat:'RBI', player:'T. Bissetta',     team:'Ole Miss',          val:'12'},
+  // ERA (through Mar 5 — min IP qualified)
+  {cat:'ERA', player:'S. Benes',        team:'Lindenwood',        val:'0.00'},
+  {cat:'ERA', player:'C. Fisher',       team:'Arkansas',          val:'0.00'},
+  {cat:'ERA', player:'M. Edwards',      team:'Southern Cal',      val:'0.00'},
+  {cat:'ERA', player:'C. Allen',        team:'UNCW',              val:'0.47'},
+  {cat:'ERA', player:'D. Volantis',     team:'Texas',             val:'0.48'},
+  // Strikeouts (through Mar 5)
+  {cat:'K',   player:'D. Whitney',      team:'Oregon St.',        val:'34'},
+  {cat:'K',   player:'C. Levonas',      team:'Wake Forest',       val:'33'},
+  {cat:'K',   player:'C. Johnson',      team:'Oklahoma',          val:'32'},
+  {cat:'K',   player:'M. Edwards',      team:'Southern Cal',      val:'31'},
+  {cat:'K',   player:'M. Malki',        team:'Cal Baptist',       val:'31'}
 ];
 
-// ── Seed data: top conference leaders ─────────────────────────────────────────
+// ── Seed data: top conference leaders (2026) ──────────────────────────────────
 var SEED_CONF = [
-  {conf:'SEC',      cat:'AVG', player:'J. Jones',       team:'Tennessee',     val:'.378'},
-  {conf:'SEC',      cat:'HR',  player:'J. Jones',       team:'Tennessee',     val:'22'},
-  {conf:'SEC',      cat:'RBI', player:'J. Jones',       team:'Tennessee',     val:'77'},
-  {conf:'SEC',      cat:'ERA', player:'N. Judkins',     team:'Mississippi St.',val:'0.84'},
-  {conf:'SEC',      cat:'K',   player:'T. White',       team:'Arkansas',      val:'147'},
-  {conf:'ACC',      cat:'AVG', player:'A. Lodise',      team:'Florida St.',   val:'.394'},
-  {conf:'ACC',      cat:'HR',  player:'K. Teel',        team:'Virginia',      val:'23'},
-  {conf:'ACC',      cat:'RBI', player:'K. Teel',        team:'Virginia',      val:'79'},
-  {conf:'ACC',      cat:'ERA', player:'D. Zobac',       team:'Notre Dame',    val:'1.56'},
-  {conf:'ACC',      cat:'K',   player:'C. Cagle',       team:'Auburn',        val:'141'},
-  {conf:'Big 12',   cat:'AVG', player:'K. Cross',       team:'Cincinnati',    val:'.396'},
-  {conf:'Big 12',   cat:'HR',  player:'T. Burke',       team:'Oregon',        val:'20'},
-  {conf:'Big 12',   cat:'RBI', player:'T. Burke',       team:'Oregon',        val:'65'},
-  {conf:'Big 12',   cat:'ERA', player:'C. Painter',     team:'Texas',         val:'2.11'},
-  {conf:'Big 12',   cat:'K',   player:'D. Sellers',     team:'TCU',           val:'119'},
-  {conf:'SWAC',     cat:'AVG', player:'C. Thibodeaux',  team:'Southern U.',   val:'.439'},
-  {conf:'SWAC',     cat:'HR',  player:'K. Phillips',    team:'Texas Southern',val:'14'},
-  {conf:'SWAC',     cat:'RBI', player:'J. Cruz',        team:'Alabama St.',   val:'72'},
-  {conf:'SWAC',     cat:'ERA', player:'D. Wells',       team:'Grambling',     val:'2.88'},
-  {conf:'SWAC',     cat:'K',   player:'J. Ford',        team:'Alcorn',        val:'98'},
-  {conf:'MEAC',     cat:'AVG', player:'T. Rutledge',    team:'Alabama A&M',   val:'.389'},
-  {conf:'MEAC',     cat:'HR',  player:'M. Williams',    team:'Norfolk St.',   val:'11'},
-  {conf:'MEAC',     cat:'RBI', player:'T. Rutledge',    team:'Alabama A&M',   val:'58'},
-  {conf:'MEAC',     cat:'ERA', player:'A. Johnson',     team:'Howard',        val:'3.21'},
-  {conf:'MEAC',     cat:'K',   player:'C. Davis',       team:'Coppin St.',    val:'87'}
+  {conf:'SEC',      cat:'AVG', player:'T. Bissetta',    team:'Ole Miss',       val:'.480'},
+  {conf:'SEC',      cat:'HR',  player:'B. Brown',       team:'Tennessee',      val:'3'},
+  {conf:'SEC',      cat:'RBI', player:'T. Bissetta',    team:'Ole Miss',       val:'12'},
+  {conf:'SEC',      cat:'ERA', player:'C. Fisher',      team:'Arkansas',       val:'0.00'},
+  {conf:'SEC',      cat:'K',   player:'R. McPherson',   team:'Mississippi St.',val:'28'},
+  {conf:'ACC',      cat:'AVG', player:'M. Quatrani',    team:'Notre Dame',     val:'.514'},
+  {conf:'ACC',      cat:'HR',  player:'J. Freeman',     team:'Northwestern',   val:'3'},
+  {conf:'ACC',      cat:'RBI', player:'A. Hernandez',   team:'Georgia Tech',   val:'11'},
+  {conf:'ACC',      cat:'ERA', player:'W. Mendes',      team:'Florida St.',    val:'0.55'},
+  {conf:'ACC',      cat:'K',   player:'C. Levonas',     team:'Wake Forest',    val:'33'},
+  {conf:'Big 12',   cat:'AVG', player:'T. Macon',       team:'Missouri',       val:'.500'},
+  {conf:'Big 12',   cat:'HR',  player:'J. Bennett',     team:'DBU',            val:'4'},
+  {conf:'Big 12',   cat:'RBI', player:'T. Armstrong',   team:'Baylor',         val:'15'},
+  {conf:'Big 12',   cat:'ERA', player:'D. Volantis',    team:'Texas',          val:'0.48'},
+  {conf:'Big 12',   cat:'K',   player:'C. Johnson',     team:'Oklahoma',       val:'32'},
+  {conf:'SWAC',     cat:'AVG', player:'T. Jones',       team:'Grambling',      val:'.438'},
+  {conf:'SWAC',     cat:'HR',  player:'J. Williams',    team:'Texas Southern', val:'2'},
+  {conf:'SWAC',     cat:'RBI', player:'T. Jones',       team:'Grambling',      val:'9'},
+  {conf:'SWAC',     cat:'ERA', player:'K. Robinson',    team:'Northwestern St.',val:'0.57'},
+  {conf:'SWAC',     cat:'K',   player:'C. Olivier',     team:'Lamar',          val:'28'},
+  {conf:'MEAC',     cat:'AVG', player:'D. Alston',      team:'Morgan St.',     val:'.421'},
+  {conf:'MEAC',     cat:'HR',  player:'J. Parker',      team:'Norfolk St.',    val:'2'},
+  {conf:'MEAC',     cat:'RBI', player:'D. Alston',      team:'Morgan St.',     val:'8'},
+  {conf:'MEAC',     cat:'ERA', player:'T. Miles',       team:'Howard',         val:'1.80'},
+  {conf:'MEAC',     cat:'K',   player:'A. Brooks',      team:'Coppin St.',     val:'18'}
 ];
 
 function seedStats() {
@@ -902,50 +902,64 @@ function seedStats() {
 }
 
 function fetchAllStats() {
-  // Show seed data immediately
+  // Show seed data immediately — live fetch overrides if successful
   seedStats();
 
-  // Then attempt live refresh from ncaa-api.henrygd.me
-  // If it works, override the seed data; if not, seed data stays
-  var base = 'https://ncaa-api.henrygd.me/stats/baseball/d1/current/individual/';
-  var statPages = [
-    { id:'200', label:'AVG',  topKey:'BA'  },
-    { id:'210', label:'HR',   topKey:'HR'  },
-    { id:'214', label:'RBI',  topKey:'RBI' },
-    { id:'201', label:'ERA',  topKey:'ERA' },
-    { id:'212', label:'K',    topKey:'SO'  }
+  var PROXY = 'https://corsproxy.io/?url=';
+  var STAT_PAGES = [
+    { url:'https://d1sportsnet.com/baseball/stats/avg.php',     cat:'AVG', col:8 },
+    { url:'https://d1sportsnet.com/baseball/stats/hrs.php',     cat:'HR',  col:6 },
+    { url:'https://d1sportsnet.com/baseball/stats/rbi.php',     cat:'RBI', col:6 },
+    { url:'https://d1sportsnet.com/baseball/stats/era.php',     cat:'ERA', col:9 },
+    { url:'https://d1sportsnet.com/baseball/stats/strikes.php', cat:'K',   col:7 }
   ];
 
-  var freshOverall = [];
-  var pending = statPages.length;
+  function abbrevName(full) {
+    if (!full) return full;
+    var parts = full.trim().split(/\s+/);
+    if (parts.length < 2) return full;
+    return parts[0].charAt(0) + '. ' + parts.slice(1).join(' ');
+  }
 
-  statPages.forEach(function(sp) {
-    fetch(base + sp.id)
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
-        // ncaa-api returns { data: { rows: [{Rank,Name,Team,...,<stat>},...] } }
-        var rows = (json.data && json.data.rows) || json.rows || [];
+  var freshOverall = [];
+  var pending = STAT_PAGES.length;
+
+  STAT_PAGES.forEach(function(sp) {
+    fetch(PROXY + encodeURIComponent(sp.url), { cache:'no-store' })
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var rows = doc.querySelectorAll('table tr');
         var count = 0;
         for (var i = 0; i < rows.length && count < 5; i++) {
-          var row = rows[i];
-          var name = row.Name || row.name || '';
-          var team = row.Team || row.team || '';
-          var val  = row[sp.topKey] || row.Value || row.value || '';
-          if (!name || name === 'Name') continue;
-          freshOverall.push({ scope:'overall', conf:'', cat:sp.label,
-            player:name, team:team, val:String(val) });
+          var cells = rows[i].querySelectorAll('td');
+          if (cells.length < sp.col + 1) continue;
+          var name = cells[1] ? cells[1].textContent.trim() : '';
+          var team = cells[2] ? cells[2].textContent.trim() : '';
+          var val  = cells[sp.col] ? cells[sp.col].textContent.trim() : '';
+          if (!name || name === 'Name' || !/[A-Za-z]{2}/.test(name)) continue;
+          if (!val || val === sp.cat) continue;
+          freshOverall.push({ scope:'overall', conf:'', cat:sp.cat,
+            player:abbrevName(name), team:team, val:val });
           count++;
         }
       })
-      .catch(function() {})
+      .catch(function(e) { console.warn('Stats live fetch failed (' + sp.cat + '):', e); })
       .then(function() {
         pending--;
-        if (pending === 0 && freshOverall.length > 0) {
-          overallItems = freshOverall;
+        if (pending === 0) {
+          if (freshOverall.length >= 10) {
+            overallItems = freshOverall;
+            console.log('Stats: live data loaded (' + freshOverall.length + ' entries)');
+          } else {
+            console.log('Stats: keeping seed data (live returned ' + freshOverall.length + ')');
+          }
           if (statsScope === 'overall') renderStatsTicker();
         }
       });
   });
+
 }
 
 function renderStatsTicker() {
