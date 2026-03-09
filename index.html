@@ -491,21 +491,27 @@ function buildDateStrip() {
       var btn = document.createElement('button');
       btn.className = 'date-chip' + (key === selDate ? ' active' : '');
       btn.textContent = offset === 0 ? 'TODAY' : dispDate(d);
-      btn.onclick = function() { selDate = key; buildDateStrip(); fetchScores(); };
+      btn.onclick = function() { selDate = key; scoresLoaded = false; buildDateStrip(); fetchScores(); };
       strip.appendChild(btn);
     })(i);
   }
 }
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
+var scoresLoaded = false;
+
 function fetchScores() {
-  document.getElementById('main').innerHTML =
-    '<div class="loading"><div>LOADING SCORES</div><div class="lbar"></div></div>';
+  // Only show loading spinner on first load — background refreshes update silently
+  if (!scoresLoaded) {
+    document.getElementById('main').innerHTML =
+      '<div class="loading"><div>LOADING SCORES</div><div class="lbar"></div></div>';
+  }
   var url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/scoreboard?limit=200' +
             (selDate ? '&dates=' + selDate : '');
   fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      scoresLoaded = true;
       var prevGames = allGames.slice();
       allGames = [];
       var events = data.events || [];
