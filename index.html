@@ -506,13 +506,28 @@ function fetchScores() {
   fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      var prevGames = allGames.slice();
       allGames = [];
       var events = data.events || [];
       for (var i = 0; i < events.length; i++) {
         var g = parseGame(events[i]);
         if (g) allGames.push(g);
       }
-      renderGames();
+      // If game count/status changed, full re-render; otherwise patch in place
+      var needsFullRender = prevGames.length !== allGames.length;
+      if (!needsFullRender) {
+        for (var pi = 0; pi < allGames.length; pi++) {
+          if (!prevGames[pi] || prevGames[pi].id !== allGames[pi].id ||
+              prevGames[pi].gs !== allGames[pi].gs) {
+            needsFullRender = true; break;
+          }
+        }
+      }
+      if (needsFullRender) {
+        renderGames();
+      } else {
+        patchLiveCards();
+      }
       buildTicker();
       var t = new Date();
       var h = t.getHours(); var mn = t.getMinutes();
@@ -720,23 +735,30 @@ function buildCard(g) {
   var footHtml = '';
   if (live) {
     var s = g.sit;
-    var batter = (s.batter && s.batter.athlete) ? (s.batter.athlete.shortName || '') : '';
-    footHtml = '<div class="gfoot">' +
-      '<div class="bases-row">' +
-        '<div class="diamond">' +
-          '<div class="base bhome"></div>' +
-          '<div class="base bfirst' + (s.onFirst  ? ' on' : '') + '"></div>' +
-          '<div class="base bsecond' + (s.onSecond ? ' on' : '') + '"></div>' +
-          '<div class="base bthird' + (s.onThird  ? ' on' : '') + '"></div>' +
+    var hasSit = s && (s.onFirst !== undefined || s.onSecond !== undefined ||
+                       s.onThird !== undefined || s.balls !== undefined ||
+                       s.strikes !== undefined || s.outs !== undefined);
+    if (!hasSit) {
+      footHtml = '<div class="gfoot"><span style="color:var(--muted);font-size:9px;letter-spacing:1px">Live data not yet available</span></div>';
+    } else {
+      var batter = (s.batter && s.batter.athlete) ? (s.batter.athlete.shortName || '') : '';
+      footHtml = '<div class="gfoot">' +
+        '<div class="bases-row">' +
+          '<div class="diamond">' +
+            '<div class="base bhome"></div>' +
+            '<div class="base bfirst' + (s.onFirst  ? ' on' : '') + '"></div>' +
+            '<div class="base bsecond' + (s.onSecond ? ' on' : '') + '"></div>' +
+            '<div class="base bthird' + (s.onThird  ? ' on' : '') + '"></div>' +
+          '</div>' +
+          '<div class="outs">' +
+            '<div class="odot' + ((s.outs||0)>=1?' on':'') + '"></div>' +
+            '<div class="odot' + ((s.outs||0)>=2?' on':'') + '"></div>' +
+          '</div>' +
+          '<span class="live-count" style="font-size:9px;color:var(--muted)">' + (s.balls||0) + '-' + (s.strikes||0) + '</span>' +
         '</div>' +
-        '<div class="outs">' +
-          '<div class="odot' + ((s.outs||0)>=1?' on':'') + '"></div>' +
-          '<div class="odot' + ((s.outs||0)>=2?' on':'') + '"></div>' +
-        '</div>' +
-        '<span style="font-size:9px;color:var(--muted)">' + (s.balls||0) + '-' + (s.strikes||0) + '</span>' +
-      '</div>' +
-      '<span>' + batter + '</span>' +
-    '</div>';
+        '<span class="live-batter">' + batter + '</span>' +
+      '</div>';
+    }
   } else if (fin && (g.pitchers.winner || g.pitchers.loser)) {
     var wn = (g.pitchers.winner && g.pitchers.winner.athlete) ? (g.pitchers.winner.athlete.shortName||'&mdash;') : '&mdash;';
     var ln = (g.pitchers.loser  && g.pitchers.loser.athlete)  ? (g.pitchers.loser.athlete.shortName||'&mdash;')  : '&mdash;';
@@ -755,7 +777,7 @@ function buildCard(g) {
 
   var ac = g.away.color; var hc = g.home.color;
 
-  return '<div class="card ' + g.gs + '">' +
+  return '<div class="card ' + g.gs + '" data-gameid="' + g.id + '">' +
     '<div class="gmeta">' + sLabel +
     '<span class="recinfo">' + (g.away.rec && g.home.rec ? g.away.rec + ' / ' + g.home.rec : '') + '</span></div>' +
     '<div class="teams">' +
@@ -774,6 +796,81 @@ function buildCard(g) {
     '</div>' +
     lineHtml + footHtml + lHtml +
   '</div>';
+}
+
+// ── Patch live card situation data in-place (no full re-render) ──────────────
+function patchLiveCards() {
+  for (var pi = 0; pi < allGames.length; pi++) {
+    var g = allGames[pi];
+    var card = document.querySelector('.card[data-gameid="' + g.id + '"]');
+    if (!card) continue;
+
+    // Update score
+    var trows = card.querySelectorAll('.trow');
+    if (trows[0]) {
+      var aSc = trows[0].querySelector('.tscorebig');
+      if (aSc) { aSc.textContent = g.away.score; aSc.className = 'tscorebig ' + (g.away.score > g.home.score ? 'win' : 'lose'); }
+    }
+    if (trows[1]) {
+      var hSc = trows[1].querySelector('.tscorebig');
+      if (hSc) { hSc.textContent = g.home.score; hSc.className = 'tscorebig ' + (g.home.score > g.away.score ? 'win' : 'lose'); }
+    }
+
+    if (g.gs !== 'live') continue;
+    var s = g.sit || {};
+    var hasSit = s && (s.onFirst !== undefined || s.onSecond !== undefined ||
+                       s.onThird !== undefined || s.balls !== undefined ||
+                       s.strikes !== undefined || s.outs !== undefined);
+    // If situation data just arrived for a card that showed the placeholder, force a full re-render
+    var placeholder = card.querySelector('.gfoot span[style*="not yet"]');
+    if (placeholder && hasSit) { renderGames(); return; }
+    if (!hasSit) continue;
+
+    // Update status label
+    var statusEl = card.querySelector('.gstatus');
+    if (statusEl) statusEl.innerHTML = '&#9679; LIVE &mdash; INN ' + (g.period || '');
+
+    // Update bases
+    var bases = card.querySelectorAll('.base');
+    for (var bi = 0; bi < bases.length; bi++) {
+      var b = bases[bi];
+      if (b.classList.contains('bfirst'))  { b.className = 'base bfirst'  + (s.onFirst  ? ' on' : ''); }
+      if (b.classList.contains('bsecond')) { b.className = 'base bsecond' + (s.onSecond ? ' on' : ''); }
+      if (b.classList.contains('bthird'))  { b.className = 'base bthird'  + (s.onThird  ? ' on' : ''); }
+    }
+
+    // Update outs
+    var odots = card.querySelectorAll('.odot');
+    if (odots[0]) odots[0].className = 'odot' + ((s.outs||0) >= 1 ? ' on' : '');
+    if (odots[1]) odots[1].className = 'odot' + ((s.outs||0) >= 2 ? ' on' : '');
+
+    // Update count
+    var countEl = card.querySelector('.live-count');
+    if (countEl) countEl.textContent = (s.balls||0) + '-' + (s.strikes||0);
+
+    // Update batter name
+    var batterEl = card.querySelector('.live-batter');
+    if (batterEl) {
+      batterEl.textContent = (s.batter && s.batter.athlete) ? (s.batter.athlete.shortName || '') : '';
+    }
+
+    // Update linescore rows
+    if (g.ls && g.ls.length) {
+      var lsRows = card.querySelectorAll('.linescore tbody tr');
+      if (lsRows[0] && lsRows[1]) {
+        var aCells = lsRows[0].querySelectorAll('td:not(.lbl):not(.tot)');
+        var hCells = lsRows[1].querySelectorAll('td:not(.lbl):not(.tot)');
+        for (var li = 0; li < g.ls.length && li < aCells.length; li++) {
+          aCells[li].textContent = g.ls[li].a;
+          if (hCells[li]) hCells[li].textContent = g.ls[li].h;
+        }
+        var aTot = lsRows[0].querySelector('.tot');
+        var hTot = lsRows[1].querySelector('.tot');
+        if (aTot) aTot.textContent = g.away.score;
+        if (hTot) hTot.textContent = g.home.score;
+      }
+    }
+  }
 }
 
 function buildTicker() {
@@ -1314,8 +1411,8 @@ selDate = fmtDate(new Date());
 buildDateStrip();
 fetchScores();
 fetchAllStats();
-setInterval(fetchScores, 30000);
-setInterval(fetchAllStats, 300000); // refresh stats every 5 min
+setInterval(fetchScores, 15000);       // full scoreboard refresh every 15s
+setInterval(fetchAllStats, 300000);    // stats ticker every 5 min
 
 // ── Hit counter ───────────────────────────────────────────────────────────────
 (function() {
