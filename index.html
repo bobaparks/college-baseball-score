@@ -331,10 +331,6 @@
     .bs-title { font-size:16px; }
     .bs-body { padding:14px; }
 
-    /* Hit counter — smaller on mobile */
-    #hitCounter { bottom:12px; right:12px; padding:8px 10px 6px; min-width:60px; }
-    #hitBall { font-size:1.2rem; }
-    #hitNum { font-size:0.9rem; }
   }
 </style>
 </head>
@@ -1493,64 +1489,8 @@ fetchAllStats();
 setInterval(fetchScores, 15000);       // full scoreboard refresh every 15s
 setInterval(fetchAllStats, 300000);    // stats ticker every 5 min
 
-// ── Hit counter ───────────────────────────────────────────────────────────────
-(function() {
-  var key = 'bbscore_hits';
-  var count = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-  localStorage.setItem(key, count);
-  var el = document.getElementById('hitCount');
-  if (el) el.textContent = count.toLocaleString();
-})();
 </script>
 
-<!-- Hit Counter -->
-<div id="hitCounter">
-  <span id="hitBall">⚾</span>
-  <div id="hitLabel">HITS</div>
-  <div id="hitNum"><span id="hitCount">0</span></div>
-</div>
 
-<style>
-#hitCounter {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px 8px;
-  text-align: center;
-  z-index: 999;
-  min-width: 72px;
-  box-shadow: 0 2px 12px rgba(0,0,0,.5);
-  user-select: none;
-}
-#hitBall {
-  font-size: 1.5rem;
-  display: block;
-  line-height: 1;
-  animation: spin 8s linear infinite;
-  transform-origin: center;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-#hitLabel {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-  color: #555;
-  margin-top: 4px;
-}
-#hitNum {
-  font-family: 'DM Mono', monospace;
-  font-size: 1.05rem;
-  color: var(--accent);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  margin-top: 1px;
-}
-</style>
 </body>
 </html>
