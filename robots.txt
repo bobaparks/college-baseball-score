@@ -1,0 +1,8 @@
+# Diamond College Baseball — robots.txt
+# https://www.diamondcollegebaseball.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.diamondcollegebaseball.com/sitemap.xml
