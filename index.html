@@ -299,6 +299,50 @@
   .bs-linescore td.bs-lbl { text-align:left; color:var(--text); }
   .bs-linescore td.bs-tot { color:var(--accent); border-left:1px solid var(--border); font-weight:500; }
 
+  /* ── Stats Leaders Panel ── */
+  .sl-btn { padding:5px 12px; border:1px solid var(--border); background:none; color:var(--muted);
+    font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; cursor:pointer;
+    border-radius:2px; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+  .sl-btn:hover, .sl-btn.open { border-color:var(--accent); color:var(--accent); }
+  .sl-btn.open { background:rgba(176,28,46,.06); }
+  .sl-filters-wrap { position:relative; }
+  .sl-panel { display:none; position:absolute; top:0; left:0; right:0; z-index:200;
+    background:var(--surface); border-bottom:2px solid var(--accent);
+    border-top:1px solid var(--border); padding:20px 32px 24px; box-shadow:0 4px 20px rgba(0,0,0,.1); }
+  .sl-panel.open { display:block; }
+  .sl-panel-inner { max-width:1400px; margin:0 auto; }
+  .sl-top { display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .sl-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px; color:var(--accent); }
+  .sl-scope { display:flex; gap:4px; }
+  .sl-stab { padding:4px 12px; border:1px solid var(--border); background:none; color:var(--muted);
+    font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; cursor:pointer;
+    border-radius:2px; transition:all .15s; }
+  .sl-stab:hover { border-color:var(--accent); color:var(--accent); }
+  .sl-stab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .sl-csel { padding:4px 24px 4px 10px; border:1px solid var(--border); background:var(--surface);
+    color:var(--text); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px;
+    border-radius:2px; appearance:none; cursor:pointer; outline:none; }
+  .sl-csel:focus { border-color:var(--accent); }
+  .sl-close { margin-left:auto; padding:4px 10px; border:1px solid var(--border); background:none;
+    color:var(--muted); font-family:'DM Mono',monospace; font-size:9px; cursor:pointer;
+    border-radius:2px; letter-spacing:1px; }
+  .sl-close:hover { border-color:var(--red); color:var(--red); }
+  .sl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .sl-card { background:var(--surface2); border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+  .sl-card-hdr { background:var(--accent); color:#fff; padding:6px 12px;
+    font-size:9px; letter-spacing:3px; display:flex; justify-content:space-between; align-items:center; }
+  .sl-card-conf { font-size:8px; opacity:.8; letter-spacing:2px; }
+  .sl-row { display:flex; align-items:center; padding:7px 12px; border-bottom:1px solid var(--border);
+    gap:10px; transition:background .1s; }
+  .sl-row:last-child { border-bottom:none; }
+  .sl-row:hover { background:var(--surface); }
+  .sl-rank { font-size:9px; color:var(--muted); width:14px; flex-shrink:0; }
+  .sl-player { font-size:11px; color:var(--text); letter-spacing:.3px; }
+  .sl-team { font-size:9px; color:var(--muted); letter-spacing:.5px; }
+  .sl-val { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--accent);
+    letter-spacing:1px; min-width:44px; text-align:right; }
+  .sl-val.pitcher { color:var(--blue); }
+
   @media(max-width:700px) {
     /* Layout */
     header { padding:0 14px; height:52px; }
@@ -407,9 +451,38 @@
     <option value="MAC">MAC</option>
     <option value="WAC">WAC</option>
   </select>
+  <span class="flabel" style="margin-left:8px">STATS</span>
+  <button class="sl-btn" id="slBtn">&#9776; STAT LEADERS</button>
   <div class="sbox">
     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" placeholder="SEARCH TEAM..." id="searchInput">
+  </div>
+</div>
+
+<!-- Stats Leaders Panel -->
+<div class="sl-filters-wrap" id="slWrap">
+  <div class="sl-panel" id="slPanel">
+    <div class="sl-panel-inner">
+      <div class="sl-top">
+        <span class="sl-title">STAT LEADERS</span>
+        <div class="sl-scope">
+          <button class="sl-stab active" data-sl-scope="overall">OVERALL D1</button>
+          <button class="sl-stab" data-sl-scope="conf">BY CONFERENCE</button>
+        </div>
+        <select class="sl-csel" id="slConfSel" style="display:none">
+          <option value="all">ALL CONFERENCES</option>
+          <option value="SEC">SEC</option>
+          <option value="ACC">ACC</option>
+          <option value="Big 12">Big 12</option>
+          <option value="SWAC">SWAC</option>
+          <option value="MEAC">MEAC</option>
+        </select>
+        <button class="sl-close" id="slClose">&#10005; CLOSE</button>
+      </div>
+      <div class="sl-grid" id="slGrid">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">LOADING STATS&hellip;</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -442,6 +515,128 @@ var selDate     = '';
 var statusFilt  = 'all';
 var confFilt    = 'all';
 var searchQ     = '';
+
+
+var SB = {
+  'Abilene Christian':'achr','Air Force':'afa','Alabama':'alab','Alabama State':'alst',
+  'App State':'appa','Appalachian State':'appa','Arizona':'ariz','Arizona State':'asu',
+  'Arkansas':'ark','Arkansas State':'aru','Auburn':'aub','Austin Peay':'ausp',
+  'Ball State':'ball','Baylor':'bay','Belmont':'belm','Boise State':'bosu',
+  'Boston College':'bc','Bradley':'brad','Butler':'butl','BYU':'byu',
+  'Cal':'cal','California':'cal','Cal Poly':'cslo','California Baptist':'calb',
+  'Cal Baptist':'calb','Campbell':'camb','Charleston':'chac','Charlotte':'ncch',
+  'Chattanooga':'tenc','Chicago State':'chst','Cincinnati':'cinn','Clemson':'clem',
+  'Coastal Carolina':'coas','Colorado':'colo','Colorado State':'csu',
+  'Columbia':'colm','Creighton':'crei','Dallas Baptist':'dbap','DBU':'dbap',
+  'Dayton':'dayt','Delaware':'dela','DePaul':'depa','Drake':'drak','Drexel':'drex',
+  'Duke':'duke','ECU':'ecu','East Carolina':'ecu','Eastern Kentucky':'eky','EKU':'eky',
+  'Eastern Michigan':'emu','Elon':'elon','ETSU':'etsu','East Tennessee State':'etsu',
+  'Evansville':'evan','Florida':'fla','Florida Atlantic':'fau','Florida Gulf Coast':'fguu',
+  'FGCU':'fguu','FIU':'flin','Florida International':'flin','Florida State':'fsu',
+  'Fresno State':'fres','Furman':'furm','Gardner-Webb':'gard','GCU':'gcan',
+  'Grand Canyon':'gcan','George Mason':'gema','Georgetown':'gu','Georgia':'geo',
+  'Georgia Southern':'geos','Georgia State':'gest','Georgia Tech':'geot',
+  'Gonzaga':'gonz','Hampton':'hamp','Hawaii':'haw','Hofstra':'hofs',
+  'Houston':'hou','Houston Christian':'houb','HBU':'houb','Idaho State':'idsu',
+  'Illinois':'ill','Illinois State':'ilsu','Incarnate Word':'inca','Indiana':'ind',
+  'Indiana State':'insu','Iowa':'iowa','Iowa State':'iast','Jackson State':'jast',
+  'Jacksonville State':'jkst','James Madison':'jame','Kansas':'kan',
+  'Kansas State':'ksu','Kennesaw State':'kenn','Kentucky':'kty','Lamar':'lama',
+  'Long Beach State':'lbst','LBSU':'lbst','Liberty':'libe','Lipscomb':'lips',
+  'Little Rock':'arkl','Louisiana':'ulaf','UL Lafayette':'ulaf','Louisiana Tech':'latc',
+  'Louisville':'lou','Loyola Marymount':'loyo','LMU':'loyo','Loyola Chicago':'loyc',
+  'LSU':'lsu','Maine':'main','Marshall':'mars','Maryland':'mary','McNeese':'mcns',
+  'McNeese State':'mcns','Memphis':'memp','Mercer':'merc','Miami':'miaf',
+  'Miami (FL)':'miaf','Michigan':'mich','Michigan State':'mist','Middle Tennessee':'mitn',
+  'Minnesota':'minn','Mississippi State':'msst','Missouri':'miss','Missouri State':'most',
+  'Monmouth':'monh','Murray State':'mray','Navy':'navy','Nebraska':'neb',
+  'Nevada':'nev','New Mexico':'unm','New Mexico State':'nmst','NMSU':'nmst',
+  'Nicholls':'nich','Nicholls State':'nich','North Carolina':'unc','UNC':'unc',
+  'NC State':'ncst','North Carolina State':'ncst','North Dakota State':'ndsu',
+  'Northern Illinois':'niuu','Northwestern':'nwst','Notre Dame':'nd',
+  'Ohio':'ohio','Ohio State':'ohst','Oklahoma':'okla','Oklahoma State':'okst',
+  'Ole Miss':'miss2','Oregon':'oreg','Oregon State':'orst','Penn State':'penn',
+  'Pittsburgh':'pitt','Pitt':'pitt','Prairie View A&M':'pvam','Purdue':'purd',
+  'Rice':'rice','Rutgers':'rutg','Sam Houston':'sams','Sam Houston State':'sams',
+  'San Diego State':'sdst','Santa Clara':'sncl','SFA':'sfau',
+  'Stephen F. Austin':'sfau','South Alabama':'soal','South Carolina':'soca',
+  'South Florida':'sfla','USF':'sfla','Southeast Missouri State':'semo',
+  'Southeastern Louisiana':'sela','Southern':'souu','Southern Miss':'smis',
+  'Southern Mississippi':'smis','Stanford':'stan','Stetson':'stet',
+  'Stony Brook':'ston','TCU':'tcu','Temple':'temp','Tennessee':'tenn',
+  'Tennessee Tech':'tete','Texas':'tex','Texas A&M':'tamu',
+  'Texas A&M-Corpus Christi':'tamc','Texas Southern':'tsou','Texas State':'txst',
+  'Texas Tech':'ttch','Toledo':'tole','Troy':'troy','Tulane':'tula','Tulsa':'tuls',
+  'UAB':'uab','UCF':'ucf','UCLA':'ucla','UConn':'ucon','UMBC':'umbc',
+  'UMass':'mass','UMass Lowell':'masl','UNCG':'uncg','UNC Greensboro':'uncg',
+  'UNLV':'unlv','UNT':'nttx','North Texas':'nttx','USC':'usc','Utah':'utah',
+  'Utah Valley':'uvuu','UVU':'uvuu','UTEP':'utep','UTSA':'utsa',
+  'Valparaiso':'valp','Vanderbilt':'vand','VCU':'vcur','Virginia':'virg',
+  'Virginia Tech':'vtec','VMI':'vmil','Wagner':'wagn','Wake Forest':'wake',
+  'Washington':'wash','Washington State':'wast','West Virginia':'wvir','WVU':'wvir',
+  'Western Illinois':'weil','Western Kentucky':'wkyu','WKU':'wkyu',
+  'Western Michigan':'wemi','Wichita State':'wich','William & Mary':'wm',
+  'Wisconsin':'wisc','Wofford':'woff','Wright State':'wrst','Wyoming':'wyo',
+  'Xavier':'xavi','Yale':'yale'
+};
+
+
+var SD = {
+  'Air Force':'goairforcefalcons.com','Alabama':'rolltide.com',
+  'Appalachian State':'appstatesports.com','App State':'appstatesports.com',
+  'Arizona':'arizonawildcats.com','Arizona State':'thesundevils.com',
+  'Arkansas':'arkansasrazorbacks.com','Arkansas State':'astateredwolves.com',
+  'Auburn':'auburntigers.com','Baylor':'baylorbears.com',
+  'Boston College':'bceagles.com','BYU':'byucougars.com',
+  'Cal':'calbears.com','California':'calbears.com',
+  'Cal Poly':'gopoly.com','Clemson':'clemsontigers.com',
+  'Coastal Carolina':'goccusports.com','Colorado':'cubuffs.com',
+  'Colorado State':'csurams.com','Creighton':'gocreighton.com',
+  'Duke':'goduke.com','East Carolina':'ecupirates.com','ECU':'ecupirates.com',
+  'EKU':'ekusports.com','Eastern Kentucky':'ekusports.com',
+  'Florida':'floridagators.com','Florida Atlantic':'fausports.com',
+  'Florida State':'seminoles.com','Fresno State':'gobulldogs.com',
+  'Furman':'furmanpaladins.com','Georgia':'georgiadogs.com',
+  'Georgia Southern':'gseagles.com','Georgia State':'georgiastatesports.com',
+  'Georgia Tech':'ramblinwreck.com','Gonzaga':'gozags.com',
+  'Houston':'uhcougars.com','Illinois':'fightingillini.com',
+  'Indiana':'iuhoosiers.com','Iowa':'hawkeyesports.com',
+  'Iowa State':'cyclones.com','Kansas':'kuathletics.com',
+  'Kansas State':'kstatesports.com','Kentucky':'ukathletics.com',
+  'Liberty':'libertyflames.com','Louisiana':'ragincajuns.com',
+  'UL Lafayette':'ragincajuns.com','Louisiana Tech':'latechsports.com',
+  'Louisville':'gocards.com','LSU':'lsusports.net',
+  'Maryland':'umterps.com','Memphis':'gotigersgo.com',
+  'Miami (FL)':'hurricanesports.com','Miami':'hurricanesports.com',
+  'Michigan':'mgoblue.com','Michigan State':'msuspartans.com',
+  'Minnesota':'gophersports.com','Mississippi State':'hailstate.com',
+  'Missouri':'mutigers.com','NC State':'gopack.com',
+  'North Carolina State':'gopack.com','Nebraska':'huskers.com',
+  'Nevada':'nevadawolfpack.com','New Mexico State':'nmstatesports.com',
+  'NMSU':'nmstatesports.com','North Carolina':'tarheelblue.com','UNC':'tarheelblue.com',
+  'Notre Dame':'und.com','Ohio State':'ohiostatebuckeyes.com',
+  'Oklahoma':'soonersports.com','Oklahoma State':'okstate.com',
+  'Ole Miss':'olemisssports.com','Oregon':'goducks.com',
+  'Oregon State':'osubeavers.com','Penn State':'gopsusports.com',
+  'Pittsburgh':'pittsburghpanthers.com','Pitt':'pittsburghpanthers.com',
+  'Purdue':'purduesports.com','Rice':'riceowls.com','Rutgers':'scarletknights.com',
+  'Sam Houston':'bearkatsports.com','Sam Houston State':'bearkatsports.com',
+  'South Alabama':'usajaguars.com','South Carolina':'gamecocksonline.com',
+  'South Florida':'gousfbulls.com','USF':'gousfbulls.com',
+  'Stanford':'gostanford.com','Stetson':'stetsonathletics.com',
+  'TCU':'gofrogs.com','Tennessee':'utsports.com','Texas':'texassports.com',
+  'Texas A&M':'12thman.com','Texas State':'txstatebobcats.com',
+  'Texas Tech':'texastech.com','Tulane':'tulanegreenwave.com',
+  'UCF':'ucfknights.com','UCLA':'uclabruins.com','UConn':'uconnhuskies.com',
+  'UNLV':'unlvrebels.com','USC':'usctrojans.com','Utah':'utahutes.com',
+  'UTEP':'utepminers.com','UTSA':'utsaathletics.com',
+  'Vanderbilt':'vucommodores.com','VCU':'vcuathletics.com',
+  'Virginia':'virginiasports.com','Virginia Tech':'hokiesports.com',
+  'Wake Forest':'wakeforestsports.com','Washington':'gohuskies.com',
+  'Washington State':'wsucougars.com','West Virginia':'wvusports.com','WVU':'wvusports.com',
+  'Western Kentucky':'wkusports.com','WKU':'wkusports.com',
+  'Wichita State':'goshockers.com','Wisconsin':'uwbadgers.com','Wyoming':'gowyo.com'
+};
 
 // ── Conference map (keyed on ESPN shortDisplayName) ───────────────────────────
 var CM = {
@@ -853,12 +1048,21 @@ function buildCard(g) {
     footHtml = '<div class="gfoot"><span>' + g.venue + '</span></div>';
   }
 
-  // Links
+  // Links — ESPN + StatBroadcast + Sidearm
   var gcUrl  = 'https://www.espn.com/college-baseball/game/_/gameId/' + g.id;
+  // Find StatBroadcast GID: prefer home team (the hosting school)
+  var sbGid  = SB[g.home.name] || SB[g.away.name] || null;
+  var sbUrl  = sbGid ? 'https://www.statbroadcast.com/events/statmonitr.php?gid=' + sbGid : null;
+  // Find Sidearm domain: prefer home team
+  var sdDom  = SD[g.home.name] || SD[g.away.name] || null;
+  var sdUrl  = sdDom ? 'https://' + sdDom + '/sidearmstats/baseball/summary' : null;
+
   var lHtml = '<div class="glinks">';
   if (live) lHtml += '<a class="glink pri" href="' + gcUrl + '" target="_blank" rel="noopener">&#9654; GAMECAST</a>';
   if (!sched) lHtml += '<button class="glink bs-btn" data-gameid="' + g.id + '">&#9776; BOX SCORE</button>';
   lHtml += '<a class="glink" href="' + gcUrl + '" target="_blank" rel="noopener">&#8599; ESPN</a>';
+  if (sbUrl) lHtml += '<a class="glink" href="' + sbUrl + '" target="_blank" rel="noopener" title="StatBroadcast live stats">&#128200; STATBCAST</a>';
+  if (sdUrl) lHtml += '<a class="glink" href="' + sdUrl + '" target="_blank" rel="noopener" title="Sidearm live stats">&#128202; SIDEARM</a>';
   lHtml += '</div>';
 
   var ac = g.away.color; var hc = g.home.color;
@@ -976,6 +1180,127 @@ function buildTicker() {
   }).join('');
   document.getElementById('tickerInner').innerHTML = html;
 }
+
+// ── Stats Leaders Panel ──────────────────────────────────────────────────────
+var slOpen     = false;
+var slScope    = 'overall';  // 'overall' | 'conf'
+var slConfFilt = 'all';
+
+var CAT_LABELS = { AVG:'BATTING AVG', HR:'HOME RUNS', RBI:'RBI', ERA:'ERA', K:'STRIKEOUTS', SV:'SAVES',
+                   H:'HITS', SB:'STOLEN BASES', OBP:'ON-BASE %', SLG:'SLUGGING' };
+var PITCHER_CATS = { ERA:1, K:1, W:1, SV:1, IP:1 };
+
+function renderSlGrid() {
+  var grid = document.getElementById('slGrid');
+  if (!grid) return;
+  if (!statsBuilt) {
+    grid.innerHTML = '<div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">LOADING STATS&hellip;</div>';
+    return;
+  }
+
+  // Pick data source
+  var src = slScope === 'overall' ? overallItems : confItems;
+
+  // Apply conference filter in conf scope
+  if (slScope === 'conf' && slConfFilt !== 'all') {
+    src = src.filter(function(d) { return d.conf === slConfFilt; });
+  }
+
+  // Group by category (and conf if applicable)
+  var groups = {};
+  for (var i = 0; i < src.length; i++) {
+    var d = src[i];
+    var key = slScope === 'conf' ? d.conf + '|' + d.cat : d.cat;
+    if (!groups[key]) groups[key] = { cat:d.cat, conf:d.conf||'', rows:[] };
+    groups[key].rows.push(d);
+  }
+
+  // Sort keys: overall → by cat order; conf → by conf alpha then cat
+  var CAT_ORDER = ['AVG','HR','RBI','ERA','K','SV','H','SB','OBP','SLG','W'];
+  var keys = Object.keys(groups).sort(function(a,b) {
+    var ga = groups[a]; var gb = groups[b];
+    if (slScope === 'conf') {
+      if (ga.conf < gb.conf) return -1;
+      if (ga.conf > gb.conf) return 1;
+    }
+    return CAT_ORDER.indexOf(ga.cat) - CAT_ORDER.indexOf(gb.cat);
+  });
+
+  if (!keys.length) {
+    grid.innerHTML = '<div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">NO DATA FOR SELECTED FILTERS</div>';
+    return;
+  }
+
+  var html = '';
+  for (var ki = 0; ki < keys.length; ki++) {
+    var grp = groups[keys[ki]];
+    var isPitcher = !!PITCHER_CATS[grp.cat];
+    var catLabel  = CAT_LABELS[grp.cat] || grp.cat;
+    html += '<div class="sl-card">';
+    html += '<div class="sl-card-hdr"><span>' + catLabel + '</span>';
+    if (grp.conf) html += '<span class="sl-card-conf">' + grp.conf + '</span>';
+    html += '</div>';
+    for (var ri = 0; ri < grp.rows.length; ri++) {
+      var r = grp.rows[ri];
+      html += '<div class="sl-row">' +
+        '<span class="sl-rank">' + (ri+1) + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="sl-player">' + r.player + '</div>' +
+          '<div class="sl-team">' + r.team + '</div>' +
+        '</div>' +
+        '<span class="sl-val' + (isPitcher?' pitcher':'') + '">' + r.val + '</span>' +
+      '</div>';
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function openSlPanel() {
+  slOpen = true;
+  document.getElementById('slPanel').classList.add('open');
+  document.getElementById('slBtn').classList.add('open');
+  renderSlGrid();
+}
+function closeSlPanel() {
+  slOpen = false;
+  document.getElementById('slPanel').classList.remove('open');
+  document.getElementById('slBtn').classList.remove('open');
+}
+
+document.getElementById('slBtn').addEventListener('click', function() {
+  slOpen ? closeSlPanel() : openSlPanel();
+});
+document.getElementById('slClose').addEventListener('click', closeSlPanel);
+
+// Scope tabs inside panel
+var slTabs = document.querySelectorAll('.sl-stab');
+for (var si = 0; si < slTabs.length; si++) {
+  (function(tab) {
+    tab.addEventListener('click', function() {
+      for (var xi = 0; xi < slTabs.length; xi++) slTabs[xi].classList.remove('active');
+      tab.classList.add('active');
+      slScope = tab.getAttribute('data-sl-scope');
+      var confSel = document.getElementById('slConfSel');
+      confSel.style.display = slScope === 'conf' ? '' : 'none';
+      renderSlGrid();
+    });
+  })(slTabs[si]);
+}
+
+// Conference filter inside panel
+document.getElementById('slConfSel').addEventListener('change', function() {
+  slConfFilt = this.value;
+  renderSlGrid();
+});
+
+// Close panel on outside click
+document.addEventListener('click', function(e) {
+  if (!slOpen) return;
+  var wrap = document.getElementById('slWrap');
+  var btn  = document.getElementById('slBtn');
+  if (!wrap.contains(e.target) && !btn.contains(e.target)) closeSlPanel();
+});
 
 // ── Wire up controls ──────────────────────────────────────────────────────────
 var fbtns = document.querySelectorAll('.fbtn');
@@ -1133,7 +1458,13 @@ var SEED_OVERALL = [
   {cat:'K',   player:'C. Levonas',      team:'Wake Forest',       val:'33'},
   {cat:'K',   player:'C. Johnson',      team:'Oklahoma',          val:'32'},
   {cat:'K',   player:'M. Edwards',      team:'Southern Cal',      val:'31'},
-  {cat:'K',   player:'M. Malki',        team:'Cal Baptist',       val:'31'}
+  {cat:'K',   player:'M. Malki',        team:'Cal Baptist',       val:'31'},
+  // Saves (through Mar 9)
+  {cat:'SV',  player:'R. Kroepel',      team:'Utah Tech',         val:'6'},
+  {cat:'SV',  player:'A. Roblez',       team:'Oregon St.',        val:'5'},
+  {cat:'SV',  player:'A. Troy',         team:'Southern Cal',      val:'5'},
+  {cat:'SV',  player:'J. Mitchell',     team:'Binghamton',        val:'4'},
+  {cat:'SV',  player:'W. Cooper',       team:'Texas St.',         val:'4'}
 ];
 
 // ── Seed data: top conference leaders (2026) ──────────────────────────────────
@@ -1162,7 +1493,12 @@ var SEED_CONF = [
   {conf:'MEAC',     cat:'HR',  player:'J. Parker',      team:'Norfolk St.',    val:'2'},
   {conf:'MEAC',     cat:'RBI', player:'D. Alston',      team:'Morgan St.',     val:'8'},
   {conf:'MEAC',     cat:'ERA', player:'T. Miles',       team:'Howard',         val:'1.80'},
-  {conf:'MEAC',     cat:'K',   player:'A. Brooks',      team:'Coppin St.',     val:'18'}
+  {conf:'MEAC',     cat:'K',   player:'A. Brooks',      team:'Coppin St.',     val:'18'},
+  {conf:'SEC',      cat:'SV',  player:'A. Valentin',    team:'South Carolina', val:'4'},
+  {conf:'ACC',      cat:'SV',  player:'L. Jackman',     team:'Georgetown',     val:'4'},
+  {conf:'Big 12',   cat:'SV',  player:'I. Lohse',       team:'Missouri',       val:'4'},
+  {conf:'SWAC',     cat:'SV',  player:'C. Williams',    team:'Florida A&M',    val:'4'},
+  {conf:'MEAC',     cat:'SV',  player:'D. Parker',      team:'Morgan St.',     val:'2'}
 ];
 
 function seedStats() {
@@ -1174,6 +1510,7 @@ function seedStats() {
   });
   statsBuilt = true;
   renderStatsTicker();
+  if (slOpen) renderSlGrid();
 }
 
 function fetchAllStats() {
@@ -1185,8 +1522,9 @@ function fetchAllStats() {
     { url:'https://d1sportsnet.com/baseball/stats/avg.php',     cat:'AVG', col:8 },
     { url:'https://d1sportsnet.com/baseball/stats/hrs.php',     cat:'HR',  col:6 },
     { url:'https://d1sportsnet.com/baseball/stats/rbi.php',     cat:'RBI', col:6 },
-    { url:'https://d1sportsnet.com/baseball/stats/era.php',     cat:'ERA', col:9 },
-    { url:'https://d1sportsnet.com/baseball/stats/strikes.php', cat:'K',   col:7 }
+    { url:'https://d1sportsnet.com/baseball/stats/era.php',     cat:'ERA', col:8 },
+    { url:'https://d1sportsnet.com/baseball/stats/strikes.php', cat:'K',   col:7 },
+    { url:'https://d1sportsnet.com/baseball/stats/saves.php',   cat:'SV',  col:7 }
   ];
 
   function abbrevName(full) {
@@ -1196,9 +1534,7 @@ function fetchAllStats() {
     return parts[0].charAt(0) + '. ' + parts.slice(1).join(' ');
   }
 
-  var freshOverall = [];
-  var pending = STAT_PAGES.length;
-
+  // Each category updates independently — a failed fetch keeps the seed rows for that cat
   STAT_PAGES.forEach(function(sp) {
     fetch(PROXY + encodeURIComponent(sp.url), { cache:'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
@@ -1206,8 +1542,8 @@ function fetchAllStats() {
         var parser = new DOMParser();
         var doc = parser.parseFromString(html, 'text/html');
         var rows = doc.querySelectorAll('table tr');
-        var count = 0;
-        for (var i = 0; i < rows.length && count < 5; i++) {
+        var fresh = [];
+        for (var i = 0; i < rows.length && fresh.length < 5; i++) {
           var cells = rows[i].querySelectorAll('td');
           if (cells.length < sp.col + 1) continue;
           var name = cells[1] ? cells[1].textContent.trim() : '';
@@ -1215,24 +1551,21 @@ function fetchAllStats() {
           var val  = cells[sp.col] ? cells[sp.col].textContent.trim() : '';
           if (!name || name === 'Name' || !/[A-Za-z]{2}/.test(name)) continue;
           if (!val || val === sp.cat) continue;
-          freshOverall.push({ scope:'overall', conf:'', cat:sp.cat,
+          fresh.push({ scope:'overall', conf:'', cat:sp.cat,
             player:abbrevName(name), team:team, val:val });
-          count++;
+        }
+        if (fresh.length >= 3) {
+          // Replace just this category's rows in overallItems, preserve all others
+          overallItems = overallItems.filter(function(d) { return d.cat !== sp.cat; })
+            .concat(fresh);
+          console.log('Stats: live ' + sp.cat + ' loaded (' + fresh.length + ' entries)');
+          if (statsScope === 'overall') renderStatsTicker();
+          if (slOpen) renderSlGrid();
+        } else {
+          console.warn('Stats: ' + sp.cat + ' live returned only ' + fresh.length + ' — keeping seed');
         }
       })
-      .catch(function(e) { console.warn('Stats live fetch failed (' + sp.cat + '):', e); })
-      .then(function() {
-        pending--;
-        if (pending === 0) {
-          if (freshOverall.length >= 10) {
-            overallItems = freshOverall;
-            console.log('Stats: live data loaded (' + freshOverall.length + ' entries)');
-          } else {
-            console.log('Stats: keeping seed data (live returned ' + freshOverall.length + ')');
-          }
-          if (statsScope === 'overall') renderStatsTicker();
-        }
-      });
+      .catch(function(e) { console.warn('Stats live fetch failed (' + sp.cat + '):', e); });
   });
 
 }
