@@ -956,10 +956,8 @@ function buildTicker() {
   var src  = live.length ? live : allGames.slice(0, 10);
   if (!src.length) return;
   var dbl = src.concat(src);
-  var html = dbl.map(function(g, idx) {
-    // Only first copy gets data-gameid (second copy is the seamless loop duplicate)
-    var gid = idx < src.length ? ' data-gameid="' + g.id + '" title="Click to find game"' : '';
-    return '<span class="ticker-item ticker-clickable"' + gid + '>' +
+  var html = dbl.map(function(g) {
+    return '<span class="ticker-item ticker-clickable" data-gameid="' + g.id + '" title="Click to find game">' +
       g.away.abbr + ' <span class="tscore">' + g.away.score + '</span>' +
       ' &mdash; ' +
       g.home.abbr + ' <span class="tscore">' + g.home.score + '</span>' +
@@ -1065,7 +1063,7 @@ document.getElementById('tickerInner').addEventListener('click', function(e) {
   }
 });
 
-// Logo click → reset all filters
+// Logo click → reset all filters and re-render from existing data
 document.querySelector('.logo').addEventListener('click', function() {
   searchQ    = '';
   statusFilt = 'all';
@@ -1077,8 +1075,13 @@ document.querySelector('.logo').addEventListener('click', function() {
     fbtns[xi].classList.toggle('active', fbtns[xi].getAttribute('data-filter') === 'all');
   }
   buildDateStrip();
-  scoresLoaded = false;
-  fetchScores();
+  // If we already have today's data just re-render — no fetch needed, no spinner
+  if (scoresLoaded && allGames.length) {
+    renderGames();
+  } else {
+    scoresLoaded = false;
+    fetchScores();
+  }
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
