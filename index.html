@@ -80,8 +80,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f0e8; --surface: #fffdf8; --surface2: #ede8de; --border: #c8bfa8;
-    --text: #1a1209; --muted: #7a6e5f; --accent: #b01c2e; --red: #b01c2e;
+    --bg: #f5f0e8; --surface: #fffdf8; --surface2: #ede8de; --border: #928a7c;
+    --text: #0d0904; --muted: #5a5048; --accent: #b01c2e; --red: #b01c2e;
     --blue: #1a4f7a; --live: #c0281e;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -89,7 +89,7 @@
   body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9999; }
   header { border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center;
     justify-content:space-between; height:64px; position:sticky; top:0; background:var(--bg); z-index:100; }
-  .logo { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; color:var(--accent); }
+  .logo { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; color:var(--accent); cursor:pointer; user-select:none; }
   .logo span { color:var(--muted); font-size:12px; letter-spacing:5px; display:block; margin-top:-6px;
     font-family:'DM Mono',monospace; font-weight:300; }
   .status-bar { display:flex; align-items:center; gap:20px; }
@@ -100,9 +100,11 @@
 
   .ticker { background:var(--surface); border-bottom:1px solid var(--border); padding:8px 0; overflow:hidden; }
   .ticker-inner { display:flex; gap:40px; animation:ticker 40s linear infinite; white-space:nowrap; }
-  .ticker-inner:hover { animation-play-state:paused; }
+  .ticker-inner.paused { animation-play-state:paused; }
   @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
   .ticker-item { font-size:10px; letter-spacing:1px; color:var(--muted); flex-shrink:0; }
+  .ticker-clickable[data-gameid] { cursor:pointer; }
+  .ticker-clickable[data-gameid]:hover { color:var(--accent); }
   .tscore { color:var(--accent); font-family:'Bebas Neue',sans-serif; font-size:13px; }
   .tlive { color:var(--live); }
 
@@ -118,7 +120,7 @@
     border-bottom:2px solid transparent; white-space:nowrap; }
   .stats-ticker { overflow:hidden; padding:7px 0; position:relative; min-height:30px; }
   .stats-ticker-inner { display:flex; gap:0; animation:sticker 60s linear infinite; white-space:nowrap; }
-  .stats-ticker-inner:hover { animation-play-state:paused; }
+  .stats-ticker-inner.paused { animation-play-state:paused; }
   @keyframes sticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
   .stat-item { display:inline-flex; align-items:center; gap:8px; padding:0 24px;
     border-right:1px solid var(--border); font-size:10px; flex-shrink:0; }
@@ -169,14 +171,15 @@
   .sec-cnt { font-size:10px; background:var(--surface2); color:var(--muted); padding:2px 8px; border-radius:2px; }
 
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
-    gap:1px; background:var(--border); border:1px solid var(--border); }
+    gap:8px; background:transparent; border:none; }
 
   .card { background:var(--surface); padding:18px 20px; transition:background .1s;
-    position:relative; overflow:hidden; }
-  .card:hover { background:var(--surface2); }
-  .card.live::before, .card.final::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; }
-  .card.live::before { background:var(--live); }
-  .card.final::before { background:var(--muted); }
+    position:relative; overflow:hidden; border:1px solid var(--border); }
+  .card:hover { background:var(--surface2); border-color:var(--accent); }
+  .card.live { border-left:3px solid var(--live); }
+  .card.final { border-left:3px solid var(--muted); }
+  .card.scheduled { border-left:3px solid var(--blue); }
+  .card.live::before, .card.final::before { display:none; }
 
   .gmeta { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .gstatus { font-size:9px; letter-spacing:3px; font-weight:500; }
@@ -344,7 +347,7 @@
   </div>
 </header>
 
-<div class="ticker">
+<div class="ticker" id="tickerWrap">
   <div class="ticker-inner" id="tickerInner">
     <span class="ticker-item">Loading scores&hellip;</span>
   </div>
@@ -357,7 +360,7 @@
     <button class="stab active" data-scope="overall">OVERALL D1</button>
     <button class="stab" data-scope="conf">BY CONFERENCE</button>
   </div>
-  <div class="stats-ticker">
+  <div class="stats-ticker" id="statsTickerWrap">
     <div class="stats-loading" id="statsLoading">LOADING STATS&hellip;</div>
     <div class="stats-ticker-inner" id="statsTickerInner" style="display:none"></div>
   </div>
@@ -381,7 +384,6 @@
     <option value="ACC">ACC</option>
     <option value="Big 12">Big 12</option>
     <option value="Big Ten">Big Ten</option>
-    <option value="Pac-12">Pac-12</option>
     <option value="American">American Athletic</option>
     <option value="Sun Belt">Sun Belt</option>
     <option value="C-USA">Conference USA</option>
@@ -451,9 +453,10 @@ var CM = {
   'Michigan':'Big Ten','Michigan State':'Big Ten','Minnesota':'Big Ten',
   'Nebraska':'Big Ten','Northwestern':'Big Ten','Ohio State':'Big Ten',
   'Penn State':'Big Ten','Purdue':'Big Ten','Rutgers':'Big Ten',
-  'Arizona':'Pac-12','Arizona State':'Pac-12','Cal':'Pac-12','Oregon':'Pac-12',
-  'Oregon State':'Pac-12','Stanford':'Pac-12','UCLA':'Pac-12','USC':'Pac-12',
-  'Utah':'Pac-12','Washington':'Pac-12','Washington State':'Pac-12',
+  'Arizona':'Big 12','Arizona State':'Big 12','Colorado':'Big 12',
+  'Utah':'Big 12','Washington':'Big 12','Washington State':'Big 12',
+  'UCLA':'Big Ten','USC':'Big Ten',
+  'Oregon':'ACC','Oregon State':'ACC','Stanford':'ACC','Cal':'ACC',
   'Charlotte':'American','East Carolina':'American','Florida Atlantic':'American',
   'Memphis':'American','Navy':'American','Rice':'American','South Florida':'American',
   'Temple':'American','Tulane':'American','Tulsa':'American','UTSA':'American',
@@ -953,8 +956,10 @@ function buildTicker() {
   var src  = live.length ? live : allGames.slice(0, 10);
   if (!src.length) return;
   var dbl = src.concat(src);
-  var html = dbl.map(function(g) {
-    return '<span class="ticker-item">' +
+  var html = dbl.map(function(g, idx) {
+    // Only first copy gets data-gameid (second copy is the seamless loop duplicate)
+    var gid = idx < src.length ? ' data-gameid="' + g.id + '" title="Click to find game"' : '';
+    return '<span class="ticker-item ticker-clickable"' + gid + '>' +
       g.away.abbr + ' <span class="tscore">' + g.away.score + '</span>' +
       ' &mdash; ' +
       g.home.abbr + ' <span class="tscore">' + g.home.score + '</span>' +
@@ -987,6 +992,93 @@ document.getElementById('confSelect').addEventListener('change', function() {
 document.getElementById('searchInput').addEventListener('input', function() {
   searchQ = this.value;
   renderGames();
+});
+
+// ── Ticker swipe/scroll speed + click-to-filter ─────────────────────────────
+(function() {
+  function initTickerInteraction(wrapperId, innerId) {
+    var wrap  = document.getElementById(wrapperId) || document.querySelector('.' + wrapperId);
+    var inner = document.getElementById(innerId);
+    if (!wrap || !inner) return;
+
+    // Wheel: speed up / slow down animation duration
+    wrap.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var style     = window.getComputedStyle(inner);
+      var duration  = parseFloat(style.animationDuration) || 40;
+      // Scroll down = faster (shorter duration), scroll up = slower
+      var delta = e.deltaY > 0 ? -4 : 4;
+      duration = Math.max(8, Math.min(120, duration + delta));
+      inner.style.animationDuration = duration + 's';
+    }, { passive: false });
+
+    // Touch swipe: drag to scrub speed
+    var touchStartX = null;
+    wrap.addEventListener('touchstart', function(e) {
+      touchStartX = e.touches[0].clientX;
+      inner.classList.add('paused');
+    }, { passive: true });
+    wrap.addEventListener('touchmove', function(e) {
+      if (touchStartX === null) return;
+      var dx = e.touches[0].clientX - touchStartX;
+      var style    = window.getComputedStyle(inner);
+      var duration = parseFloat(style.animationDuration) || 40;
+      duration = Math.max(8, Math.min(120, duration - dx * 0.1));
+      inner.style.animationDuration = duration + 's';
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    wrap.addEventListener('touchend', function() {
+      touchStartX = null;
+      inner.classList.remove('paused');
+    }, { passive: true });
+  }
+
+  // Init both tickers after DOM ready
+  initTickerInteraction('tickerWrap', 'tickerInner');
+  initTickerInteraction('statsTickerWrap', 'statsTickerInner');
+})();
+
+// Ticker click-to-filter: clicking a score scrolls to and highlights that game
+document.getElementById('tickerInner').addEventListener('click', function(e) {
+  var item = e.target.closest('[data-gameid]');
+  if (!item) return;
+  var gid  = item.getAttribute('data-gameid');
+  var card = document.querySelector('.card[data-gameid="' + gid + '"]');
+  if (!card) {
+    // Game may be filtered out — reset search filter and try again
+    searchQ = '';
+    document.getElementById('searchInput').value = '';
+    statusFilt = 'all';
+    for (var xi = 0; xi < fbtns.length; xi++) {
+      fbtns[xi].classList.toggle('active', fbtns[xi].getAttribute('data-filter') === 'all');
+    }
+    confFilt = 'all';
+    document.getElementById('confSelect').value = 'all';
+    renderGames();
+    card = document.querySelector('.card[data-gameid="' + gid + '"]');
+  }
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.style.outline = '2px solid var(--accent)';
+    card.style.outlineOffset = '2px';
+    setTimeout(function() { card.style.outline = ''; card.style.outlineOffset = ''; }, 2000);
+  }
+});
+
+// Logo click → reset all filters
+document.querySelector('.logo').addEventListener('click', function() {
+  searchQ    = '';
+  statusFilt = 'all';
+  confFilt   = 'all';
+  selDate    = fmtDate(new Date());
+  document.getElementById('searchInput').value = '';
+  document.getElementById('confSelect').value  = 'all';
+  for (var xi = 0; xi < fbtns.length; xi++) {
+    fbtns[xi].classList.toggle('active', fbtns[xi].getAttribute('data-filter') === 'all');
+  }
+  buildDateStrip();
+  scoresLoaded = false;
+  fetchScores();
 });
 
 // ── Stats ticker ──────────────────────────────────────────────────────────────
