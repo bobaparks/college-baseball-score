@@ -327,7 +327,9 @@
     color:var(--muted); font-family:'DM Mono',monospace; font-size:9px; cursor:pointer;
     border-radius:2px; letter-spacing:1px; }
   .sl-close:hover { border-color:var(--red); color:var(--red); }
-  .sl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .sl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media(max-width:900px) { .sl-grid { grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:560px) { .sl-grid { grid-template-columns:1fr; } }
   .sl-card { background:var(--surface2); border:1px solid var(--border); border-radius:2px; overflow:hidden; }
   .sl-card-hdr { background:var(--accent); color:#fff; padding:6px 12px;
     font-size:9px; letter-spacing:3px; display:flex; justify-content:space-between; align-items:center; }
@@ -434,6 +436,7 @@
     <option value="MEAC">MEAC (HBCU)</option>
     <option value="SEC">SEC</option>
     <option value="ACC">ACC</option>
+    <option value="Pac-12">Pac-12 (Oregon St.)</option>
     <option value="Big 12">Big 12</option>
     <option value="Big Ten">Big Ten</option>
     <option value="American">American Athletic</option>
@@ -646,20 +649,22 @@ var CM = {
   'Virginia Tech':'ACC','Wake Forest':'ACC',
   'Alabama':'SEC','Arkansas':'SEC','Auburn':'SEC','Florida':'SEC',
   'Georgia':'SEC','Kentucky':'SEC','LSU':'SEC','Mississippi State':'SEC',
-  'Missouri':'SEC','Ole Miss':'SEC','South Carolina':'SEC','Tennessee':'SEC',
-  'Texas A&M':'SEC','Vanderbilt':'SEC',
+  'Missouri':'SEC','Ole Miss':'SEC','Oklahoma':'SEC','South Carolina':'SEC',
+  'Tennessee':'SEC','Texas':'SEC','Texas A&M':'SEC','Vanderbilt':'SEC',
   'Baylor':'Big 12','BYU':'Big 12','Cincinnati':'Big 12','Houston':'Big 12',
-  'Iowa State':'Big 12','Kansas':'Big 12','Kansas State':'Big 12','Oklahoma':'Big 12',
-  'Oklahoma State':'Big 12','TCU':'Big 12','Texas':'Big 12','Texas Tech':'Big 12',
+  'Iowa State':'Big 12','Kansas':'Big 12','Kansas State':'Big 12',
+  'Oklahoma State':'Big 12','TCU':'Big 12','Texas Tech':'Big 12',
   'UCF':'Big 12','West Virginia':'Big 12',
   'Illinois':'Big Ten','Indiana':'Big Ten','Iowa':'Big Ten','Maryland':'Big Ten',
   'Michigan':'Big Ten','Michigan State':'Big Ten','Minnesota':'Big Ten',
   'Nebraska':'Big Ten','Northwestern':'Big Ten','Ohio State':'Big Ten',
   'Penn State':'Big Ten','Purdue':'Big Ten','Rutgers':'Big Ten',
   'Arizona':'Big 12','Arizona State':'Big 12','Colorado':'Big 12',
-  'Utah':'Big 12','Washington':'Big 12','Washington State':'Big 12',
+  'Utah':'Big 12','Washington':'Big 12',
+  'Washington State':'MWC',
   'UCLA':'Big Ten','USC':'Big Ten',
-  'Oregon':'ACC','Oregon State':'ACC','Stanford':'ACC','Cal':'ACC',
+  'Oregon':'ACC','Stanford':'ACC','Cal':'ACC','California':'ACC',
+  'Oregon State':'Pac-12',
   'Charlotte':'American','East Carolina':'American','Florida Atlantic':'American',
   'Memphis':'American','Navy':'American','Rice':'American','South Florida':'American',
   'Temple':'American','Tulane':'American','Tulsa':'American','UTSA':'American',
@@ -673,6 +678,7 @@ var CM = {
   'FIU':'C-USA','Florida International':'C-USA','Jacksonville State':'C-USA',
   'Kennesaw State':'C-USA','Liberty':'C-USA','Louisiana Tech':'C-USA',
   'Middle Tennessee':'C-USA','New Mexico State':'C-USA','Sam Houston':'C-USA',
+  'Dallas Baptist':'C-USA','DBU':'C-USA',
   'UTEP':'C-USA','Western Kentucky':'C-USA','WKU':'C-USA',
   'Cal Poly':'Big West','Cal State Fullerton':'Big West','CS Fullerton':'Big West',
   'Cal State Northridge':'Big West','CSUN':'Big West','Hawaii':'Big West',
@@ -684,13 +690,13 @@ var CM = {
   'Gonzaga':'WCC','LMU':'WCC','Loyola Marymount':'WCC','Pepperdine':'WCC',
   'Portland':'WCC','San Diego':'WCC','San Francisco':'WCC','Santa Clara':'WCC',
   'Saint Marys':'WCC','St. Marys':'WCC','Saint Mary':'WCC','St. Mary':'WCC',
-  'Bradley':'MVC','Dallas Baptist':'MVC','DBU':'MVC','Evansville':'MVC',
+  'Bradley':'MVC','Evansville':'MVC',
   'Illinois State':'MVC','Indiana State':'MVC','Missouri State':'MVC',
   'Southern Illinois':'MVC','SIU':'MVC','UIC':'MVC',
   'The Citadel':'SoCon','East Tennessee State':'SoCon','ETSU':'SoCon',
   'Furman':'SoCon','Mercer':'SoCon','Samford':'SoCon','UNC Greensboro':'SoCon',
   'Western Carolina':'SoCon','Wofford':'SoCon','VMI':'SoCon',
-  'Abilene Christian':'Southland','Houston Baptist':'Southland','HBU':'Southland',
+  'Houston Christian':'Southland','HBU':'Southland',
   'Incarnate Word':'Southland','Lamar':'Southland','McNeese':'Southland',
   'McNeese State':'Southland','Nicholls':'Southland','Nicholls State':'Southland',
   'Northwestern State':'Southland','SE Louisiana':'Southland',
@@ -709,8 +715,10 @@ var CM = {
   'Ball State':'MAC','Bowling Green':'MAC','Buffalo':'MAC','Central Michigan':'MAC',
   'Eastern Michigan':'MAC','Kent State':'MAC','Miami (OH)':'MAC','Northern Illinois':'MAC',
   'Ohio':'MAC','Toledo':'MAC','Western Michigan':'MAC',
-  'California Baptist':'WAC','Cal Baptist':'WAC','Grand Canyon':'WAC','GCU':'WAC',
+  'Abilene Christian':'WAC','California Baptist':'WAC','Cal Baptist':'WAC',
+  'Grand Canyon':'WAC','GCU':'WAC',
   'Sam Houston State':'WAC','Southern Utah':'WAC','Tarleton State':'WAC',
+  'Tarleton':'WAC','UT Arlington':'WAC','UTA':'WAC',
   'Utah Valley':'WAC','UVU':'WAC',
   'Alabama A&M':'SWAC','Alabama State':'SWAC','Alcorn State':'SWAC',
   'Arkansas-Pine Bluff':'SWAC','Bethune-Cookman':'SWAC','Florida A&M':'SWAC',
@@ -1573,14 +1581,25 @@ function fetchAllStats() {
 function renderStatsTicker() {
   var inner   = document.getElementById('statsTickerInner');
   var loading = document.getElementById('statsLoading');
-  var items   = statsScope === 'overall' ? overallItems : confItems;
+  var raw     = statsScope === 'overall' ? overallItems : confItems;
 
-  if (!items || !items.length) {
+  if (!raw || !raw.length) {
     loading.textContent    = 'STATS UNAVAILABLE';
     loading.style.display  = 'block';
     inner.style.display    = 'none';
     return;
   }
+
+  // Sort by canonical category order so ticker always reads AVG→HR→RBI→ERA→K→SV
+  var CAT_ORD = ['AVG','HR','RBI','ERA','K','SV','H','SB','OBP','SLG','W'];
+  var items = raw.slice().sort(function(a,b) {
+    var ai = CAT_ORD.indexOf(a.cat); var bi = CAT_ORD.indexOf(b.cat);
+    if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+    // Within same cat, sort conf items by conf name
+    if (a.conf < b.conf) return -1;
+    if (a.conf > b.conf) return 1;
+    return 0;
+  });
 
   var doubled = items.concat(items);
   var html = '';
