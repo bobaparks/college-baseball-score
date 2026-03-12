@@ -345,6 +345,9 @@
     letter-spacing:1px; min-width:44px; text-align:right; }
   .sl-val.pitcher { color:var(--blue); }
 
+  /* ── Standings Panel ── */
+  .stnd-loading { font-size:10px; color:var(--muted); letter-spacing:2px; padding:8px 0; }
+
   @media(max-width:700px) {
     /* Layout */
     header { padding:0 14px; height:52px; }
@@ -454,8 +457,9 @@
     <option value="MAC">MAC</option>
     <option value="WAC">WAC</option>
   </select>
-  <span class="flabel" style="margin-left:8px">STATS</span>
+  <span class="flabel" style="margin-left:8px">PANELS</span>
   <button class="sl-btn" id="slBtn">&#9776; STAT LEADERS</button>
+  <button class="sl-btn" id="stndBtn">&#9660; STANDINGS</button>
   <div class="sbox">
     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" placeholder="SEARCH TEAM..." id="searchInput">
@@ -477,14 +481,66 @@
           <option value="SEC">SEC</option>
           <option value="ACC">ACC</option>
           <option value="Big 12">Big 12</option>
-          <option value="SWAC">SWAC</option>
-          <option value="MEAC">MEAC</option>
+          <option value="Big Ten">Big Ten</option>
+          <option value="American">American Athletic</option>
+          <option value="Sun Belt">Sun Belt</option>
+          <option value="C-USA">Conference USA</option>
+          <option value="Big West">Big West</option>
+          <option value="MWC">Mountain West</option>
+          <option value="WCC">WCC</option>
+          <option value="MVC">Missouri Valley</option>
+          <option value="SoCon">Southern</option>
+          <option value="Southland">Southland</option>
+          <option value="OVC">Ohio Valley</option>
+          <option value="Patriot">Patriot League</option>
+          <option value="NEC">Northeast</option>
+          <option value="MAC">MAC</option>
+          <option value="WAC">WAC</option>
+          <option value="Pac-12">Pac-12</option>
+          <option value="SWAC">SWAC (HBCU)</option>
+          <option value="MEAC">MEAC (HBCU)</option>
         </select>
         <button class="sl-close" id="slClose">&#10005; CLOSE</button>
       </div>
       <div class="sl-grid" id="slGrid">
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">LOADING STATS&hellip;</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Standings Panel -->
+<div class="sl-filters-wrap" id="stndWrap">
+  <div class="sl-panel" id="stndPanel">
+    <div class="sl-panel-inner">
+      <div class="sl-top">
+        <span class="sl-title">CONFERENCE STANDINGS</span>
+        <select class="sl-csel" id="stndConfSel">
+          <option value="SEC">SEC</option>
+          <option value="ACC">ACC</option>
+          <option value="Big 12">Big 12</option>
+          <option value="Big Ten">Big Ten</option>
+          <option value="American">American Athletic</option>
+          <option value="Sun Belt">Sun Belt</option>
+          <option value="C-USA">Conference USA</option>
+          <option value="Big West">Big West</option>
+          <option value="MWC">Mountain West</option>
+          <option value="WCC">WCC</option>
+          <option value="MVC">Missouri Valley</option>
+          <option value="SoCon">Southern</option>
+          <option value="Southland">Southland</option>
+          <option value="OVC">Ohio Valley</option>
+          <option value="Patriot">Patriot League</option>
+          <option value="NEC">Northeast</option>
+          <option value="MAC">MAC</option>
+          <option value="WAC">WAC</option>
+          <option value="Pac-12">Pac-12</option>
+          <option value="SWAC">SWAC</option>
+          <option value="MEAC">MEAC</option>
+        </select>
+        <button class="sl-close" id="stndClose">&#10005; CLOSE</button>
+      </div>
+      <div id="stndBody"><div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">SELECT A CONFERENCE&hellip;</div></div>
     </div>
   </div>
 </div>
@@ -1265,6 +1321,7 @@ function renderSlGrid() {
 }
 
 function openSlPanel() {
+  if (stndOpen) closeStndPanel();
   slOpen = true;
   document.getElementById('slPanel').classList.add('open');
   document.getElementById('slBtn').classList.add('open');
@@ -1302,12 +1359,145 @@ document.getElementById('slConfSel').addEventListener('change', function() {
   renderSlGrid();
 });
 
-// Close panel on outside click
+// Close sl panel on outside click
 document.addEventListener('click', function(e) {
   if (!slOpen) return;
   var wrap = document.getElementById('slWrap');
   var btn  = document.getElementById('slBtn');
   if (!wrap.contains(e.target) && !btn.contains(e.target)) closeSlPanel();
+});
+
+// ── Standings Panel ───────────────────────────────────────────────────────────
+var stndOpen = false;
+var stndConf = 'SEC';
+var stndAllRows = null;  // full D1 standings, cached after first fetch
+
+function openStndPanel() {
+  if (slOpen) closeSlPanel();
+  stndOpen = true;
+  document.getElementById('stndPanel').classList.add('open');
+  document.getElementById('stndBtn').classList.add('open');
+  fetchStandings(stndConf);
+}
+function closeStndPanel() {
+  stndOpen = false;
+  document.getElementById('stndPanel').classList.remove('open');
+  document.getElementById('stndBtn').classList.remove('open');
+}
+
+function fetchStandings(conf) {
+  var body = document.getElementById('stndBody');
+  if (stndAllRows) { renderStandings(filterStandings(stndAllRows, conf), conf); return; }
+  body.innerHTML = '<div class="stnd-loading">LOADING STANDINGS&hellip;</div>';
+  var url = 'https://site.api.espn.com/apis/v2/sports/baseball/college-baseball/standings';
+  var proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  function tryUrl(u, fallback) {
+    fetch(u).then(function(r) { return r.json(); }).then(function(data) {
+      var rows = parseAllStandings(data);
+      if (!rows || rows.length === 0) throw new Error('empty');
+      stndAllRows = rows;
+      renderStandings(filterStandings(rows, conf), conf);
+    }).catch(function() {
+      if (fallback) { tryUrl(fallback, null); }
+      else { body.innerHTML = '<div class="stnd-loading">STANDINGS UNAVAILABLE &mdash; CHECK BACK LATER</div>'; }
+    });
+  }
+  tryUrl(url, proxy);
+}
+
+function parseAllStandings(data) {
+  // Traverse children to find Division I entries
+  var node = data;
+  if (data.children && data.children.length) node = data.children[0];
+  if (node.children && node.children.length) node = node.children[0];
+  var entries = (node.standings && node.standings.entries) ? node.standings.entries : [];
+  var rows = [];
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i];
+    if (!e.team) continue;
+    var teamName = e.team.shortDisplayName || e.team.displayName || '?';
+    var stats = e.stats || [];
+    function getStat(abbr, nameKey) {
+      for (var s = 0; s < stats.length; s++) {
+        var st = stats[s];
+        if (st.abbreviation === abbr || st.name === nameKey || st.name === abbr) {
+          return st.displayValue || String(st.value);
+        }
+      }
+      return '';
+    }
+    // Overall W, L, PCT from abbreviations confirmed in live API response
+    var w   = getStat('W',   'wins');
+    var l   = getStat('L',   'losses');
+    var pct = getStat('PCT', 'winPercent');
+    // Overall record summary e.g. "16-0"  — stored as stat with id "0"
+    var ovr = '';
+    for (var s = 0; s < stats.length; s++) {
+      if (stats[s].id === '0' && stats[s].summary) { ovr = stats[s].summary; break; }
+    }
+    if (!ovr) ovr = w + '-' + l;
+    // Run differential
+    var diff = getStat('DIFF', 'pointDifferential');
+    rows.push({ team: teamName, w: w, l: l, pct: pct, ovr: ovr, diff: diff });
+  }
+  return rows;
+}
+
+function filterStandings(allRows, conf) {
+  var filtered = allRows.filter(function(r) { return getConf(r.team) === conf; });
+  // Sort by wins desc, then losses asc
+  filtered.sort(function(a, b) {
+    var wa = parseInt(a.w) || 0, wb = parseInt(b.w) || 0;
+    var la = parseInt(a.l) || 0, lb = parseInt(b.l) || 0;
+    if (wb !== wa) return wb - wa;
+    return la - lb;
+  });
+  return filtered;
+}
+
+function renderStandings(rows, conf) {
+  if (!stndOpen) return;
+  var body = document.getElementById('stndBody');
+  if (!rows || rows.length === 0) {
+    body.innerHTML = '<div class="stnd-loading">NO DATA &mdash; CONFERENCE PLAY MAY NOT HAVE STARTED</div>';
+    return;
+  }
+  var html = '<div class="sl-grid"><div class="sl-card">';
+  html += '<div class="sl-card-hdr"><span>' + conf.toUpperCase() + ' STANDINGS</span>'
+        + '<span class="sl-card-conf" style="opacity:.7;font-size:8px;letter-spacing:1px">W-L &bull; PCT</span>'
+        + '</div>';
+  for (var ri = 0; ri < rows.length; ri++) {
+    var r = rows[ri];
+    html += '<div class="sl-row">'
+          + '<span class="sl-rank">' + (ri + 1) + '</span>'
+          + '<div style="flex:1;min-width:0">'
+          +   '<div class="sl-player">' + r.team + '</div>'
+          +   '<div class="sl-team">' + r.ovr
+          +     (r.diff ? '&nbsp;&nbsp;' + (r.diff.charAt(0)==='-' ? '' : r.diff.charAt(0)==='+' ? '' : '') + r.diff + ' RD' : '')
+          +   '</div>'
+          + '</div>'
+          + '<span class="sl-val" style="font-size:15px;min-width:44px;text-align:right">' + (r.pct || '.000') + '</span>'
+          + '</div>';
+  }
+  html += '</div></div>';
+  body.innerHTML = html;
+}
+document.getElementById('stndBtn').addEventListener('click', function() {
+  stndOpen ? closeStndPanel() : openStndPanel();
+});
+document.getElementById('stndClose').addEventListener('click', closeStndPanel);
+
+document.getElementById('stndConfSel').addEventListener('change', function() {
+  stndConf = this.value;
+  if (stndOpen) fetchStandings(stndConf);
+});
+
+// Close standings panel on outside click
+document.addEventListener('click', function(e) {
+  if (!stndOpen) return;
+  var wrap = document.getElementById('stndWrap');
+  var btn  = document.getElementById('stndBtn');
+  if (!wrap.contains(e.target) && !btn.contains(e.target)) closeStndPanel();
 });
 
 // ── Wire up controls ──────────────────────────────────────────────────────────
