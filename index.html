@@ -1723,14 +1723,13 @@ function seedStats() {
   renderStatsTicker();
   if (slOpen) renderSlGrid();
   var slUpd = document.getElementById('slUpdated');
-  if (slUpd && !slUpd.dataset.live) slUpd.textContent = 'SEED DATA';
+  if (slUpd && !slUpd.dataset.live) slUpd.textContent = 'AS OF MAR 5';
 }
 
 function fetchAllStats() {
   // Show seed data immediately — live fetch overrides if successful
   seedStats();
 
-  var PROXY = 'https://corsproxy.io/?url=';
   var STAT_PAGES = [
     { url:'https://d1sportsnet.com/baseball/stats/avg.php',     cat:'AVG', col:8 },
     { url:'https://d1sportsnet.com/baseball/stats/hrs.php',     cat:'HR',  col:6 },
@@ -1748,39 +1747,56 @@ function fetchAllStats() {
   }
 
   // Each category updates independently — a failed fetch keeps the seed rows for that cat
-  STAT_PAGES.forEach(function(sp) {
-    fetch(PROXY + encodeURIComponent(sp.url), { cache:'no-store' })
+  // Proxy chain: allorigins (handles HTML) → corsproxy fallback
+  var PROXIES = [
+    function(u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
+    function(u) { return 'https://corsproxy.io/?url=' + encodeURIComponent(u); }
+  ];
+
+  function fetchWithFallback(url, proxyIdx, callback) {
+    var proxied = PROXIES[proxyIdx](url);
+    fetch(proxied, { cache:'no-store' })
       .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(function(html) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, 'text/html');
-        var rows = doc.querySelectorAll('table tr');
-        var fresh = [];
-        for (var i = 0; i < rows.length && fresh.length < 5; i++) {
-          var cells = rows[i].querySelectorAll('td');
-          if (cells.length < sp.col + 1) continue;
-          var name = cells[1] ? cells[1].textContent.trim() : '';
-          var team = cells[2] ? cells[2].textContent.trim() : '';
-          var val  = cells[sp.col] ? cells[sp.col].textContent.trim() : '';
-          if (!name || name === 'Name' || !/[A-Za-z]{2}/.test(name)) continue;
-          if (!val || val === sp.cat) continue;
-          fresh.push({ scope:'overall', conf:'', cat:sp.cat,
-            player:abbrevName(name), team:team, val:val });
-        }
-        if (fresh.length >= 3) {
-          // Replace just this category's rows in overallItems, preserve all others
-          overallItems = overallItems.filter(function(d) { return d.cat !== sp.cat; })
-            .concat(fresh);
-          console.log('Stats: live ' + sp.cat + ' loaded (' + fresh.length + ' entries)');
-          if (statsScope === 'overall') renderStatsTicker();
-          if (slOpen) renderSlGrid();
-          var slUpd = document.getElementById('slUpdated');
-          if (slUpd) { slUpd.textContent = fmtNow(); slUpd.dataset.live = '1'; }
+      .then(function(html) { callback(null, html); })
+      .catch(function(e) {
+        if (proxyIdx + 1 < PROXIES.length) {
+          fetchWithFallback(url, proxyIdx + 1, callback);
         } else {
-          console.warn('Stats: ' + sp.cat + ' live returned only ' + fresh.length + ' — keeping seed');
+          callback(e, null);
         }
-      })
-      .catch(function(e) { console.warn('Stats live fetch failed (' + sp.cat + '):', e); });
+      });
+  }
+
+  STAT_PAGES.forEach(function(sp) {
+    fetchWithFallback(sp.url, 0, function(err, html) {
+      if (err) { console.warn('Stats live fetch failed (' + sp.cat + '):', err); return; }
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
+      var rows = doc.querySelectorAll('table tr');
+      var fresh = [];
+      for (var i = 0; i < rows.length && fresh.length < 5; i++) {
+        var cells = rows[i].querySelectorAll('td');
+        if (cells.length < sp.col + 1) continue;
+        var name = cells[1] ? cells[1].textContent.trim() : '';
+        var team = cells[2] ? cells[2].textContent.trim() : '';
+        var val  = cells[sp.col] ? cells[sp.col].textContent.trim() : '';
+        if (!name || name === 'Name' || !/[A-Za-z]{2}/.test(name)) continue;
+        if (!val || val === sp.cat) continue;
+        fresh.push({ scope:'overall', conf:'', cat:sp.cat,
+          player:abbrevName(name), team:team, val:val });
+      }
+      if (fresh.length >= 3) {
+        overallItems = overallItems.filter(function(d) { return d.cat !== sp.cat; })
+          .concat(fresh);
+        console.log('Stats: live ' + sp.cat + ' loaded (' + fresh.length + ' entries)');
+        if (statsScope === 'overall') renderStatsTicker();
+        if (slOpen) renderSlGrid();
+        var slUpd = document.getElementById('slUpdated');
+        if (slUpd) { slUpd.textContent = fmtNow(); slUpd.dataset.live = '1'; }
+      } else {
+        console.warn('Stats: ' + sp.cat + ' live returned only ' + fresh.length + ' — keeping seed');
+      }
+    });
   });
 
 }
