@@ -703,92 +703,171 @@ var SD = {
 
 // ── Conference map (keyed on ESPN shortDisplayName) ───────────────────────────
 var CM = {
-  'Boston College':'ACC','Clemson':'ACC','Duke':'ACC','Florida State':'ACC',
-  'Georgia Tech':'ACC','Louisville':'ACC','Miami':'ACC','NC State':'ACC',
-  'North Carolina':'ACC','Notre Dame':'ACC','Pittsburgh':'ACC','Virginia':'ACC',
-  'Virginia Tech':'ACC','Wake Forest':'ACC',
+  // ACC — full names + ESPN abbreviations
+  'Boston College':'ACC','Clemson':'ACC','Duke':'ACC',
+  'Florida State':'ACC','Florida St':'ACC',
+  'Georgia Tech':'ACC','Louisville':'ACC','Miami':'ACC',
+  'NC State':'ACC','North Carolina':'ACC','Notre Dame':'ACC',
+  'Pittsburgh':'ACC','Virginia':'ACC','Virginia Tech':'ACC','Wake Forest':'ACC',
+  'Oregon':'ACC','Stanford':'ACC','Cal':'ACC','California':'ACC',
+  // SEC — full names + ESPN abbreviations
   'Alabama':'SEC','Arkansas':'SEC','Auburn':'SEC','Florida':'SEC',
-  'Georgia':'SEC','Kentucky':'SEC','LSU':'SEC','Mississippi State':'SEC',
+  'Georgia':'SEC','Kentucky':'SEC','LSU':'SEC',
+  'Mississippi State':'SEC','Mississippi St':'SEC',
   'Missouri':'SEC','Ole Miss':'SEC','Oklahoma':'SEC','South Carolina':'SEC',
   'Tennessee':'SEC','Texas':'SEC','Texas A&M':'SEC','Vanderbilt':'SEC',
+  // Big 12 — full names + ESPN abbreviations
   'Baylor':'Big 12','BYU':'Big 12','Cincinnati':'Big 12','Houston':'Big 12',
-  'Iowa State':'Big 12','Kansas':'Big 12','Kansas State':'Big 12',
-  'Oklahoma State':'Big 12','TCU':'Big 12','Texas Tech':'Big 12',
-  'UCF':'Big 12','West Virginia':'Big 12',
+  'Iowa State':'Big 12','Iowa St':'Big 12',
+  'Kansas':'Big 12',
+  'Kansas State':'Big 12','Kansas St':'Big 12',
+  'Oklahoma State':'Big 12','Oklahoma St':'Big 12',
+  'TCU':'Big 12','Texas Tech':'Big 12','UCF':'Big 12','West Virginia':'Big 12',
+  'Arizona':'Big 12',
+  'Arizona State':'Big 12','Arizona St':'Big 12',
+  'Colorado':'Big 12','Utah':'Big 12','Washington':'Big 12',
+  // Big Ten — full names + ESPN abbreviations
   'Illinois':'Big Ten','Indiana':'Big Ten','Iowa':'Big Ten','Maryland':'Big Ten',
-  'Michigan':'Big Ten','Michigan State':'Big Ten','Minnesota':'Big Ten',
-  'Nebraska':'Big Ten','Northwestern':'Big Ten','Ohio State':'Big Ten',
-  'Penn State':'Big Ten','Purdue':'Big Ten','Rutgers':'Big Ten',
-  'Arizona':'Big 12','Arizona State':'Big 12','Colorado':'Big 12',
-  'Utah':'Big 12','Washington':'Big 12',
-  'Washington State':'MWC',
-  'UCLA':'Big Ten','USC':'Big Ten',
-  'Oregon':'ACC','Stanford':'ACC','Cal':'ACC','California':'ACC',
-  'Oregon State':'Pac-12',
+  'Michigan':'Big Ten',
+  'Michigan State':'Big Ten','Michigan St':'Big Ten',
+  'Minnesota':'Big Ten','Nebraska':'Big Ten','Northwestern':'Big Ten',
+  'Ohio State':'Big Ten','Ohio St':'Big Ten',
+  'Penn State':'Big Ten','Penn St':'Big Ten',
+  'Purdue':'Big Ten','Rutgers':'Big Ten','UCLA':'Big Ten','USC':'Big Ten',
+  // MWC — full names + ESPN abbreviations
+  'Washington State':'MWC','Washington St':'MWC',
+  'Air Force':'MWC',
+  'Boise State':'MWC','Boise St':'MWC',
+  'Colorado State':'MWC','Colorado St':'MWC',
+  'Fresno State':'MWC','Fresno St':'MWC',
+  'Nevada':'MWC','New Mexico':'MWC',
+  'San Diego State':'MWC','San Diego St':'MWC',
+  'San Jose State':'MWC','San Jose St':'MWC',
+  'UNLV':'MWC',
+  'Utah State':'MWC','Utah St':'MWC',
+  'Wyoming':'MWC',
+  // Pac-12
+  'Oregon State':'Pac-12','Oregon St':'Pac-12',
+  // American Athletic
   'Charlotte':'American','East Carolina':'American','Florida Atlantic':'American',
   'Memphis':'American','Navy':'American','Rice':'American','South Florida':'American',
   'Temple':'American','Tulane':'American','Tulsa':'American','UTSA':'American',
-  'Wichita State':'American',
-  'App State':'Sun Belt','Appalachian State':'Sun Belt','Arkansas State':'Sun Belt',
-  'Coastal Carolina':'Sun Belt','Georgia Southern':'Sun Belt','Georgia State':'Sun Belt',
+  'Wichita State':'American','Wichita St':'American',
+  // Sun Belt — full names + ESPN abbreviations
+  'App State':'Sun Belt','Appalachian State':'Sun Belt','Appalachian St':'Sun Belt',
+  'Arkansas State':'Sun Belt','Arkansas St':'Sun Belt',
+  'Coastal Carolina':'Sun Belt',
+  'Georgia Southern':'Sun Belt',
+  'Georgia State':'Sun Belt','Georgia St':'Sun Belt',
   'James Madison':'Sun Belt','Louisiana':'Sun Belt','UL Lafayette':'Sun Belt',
   'Louisiana Monroe':'Sun Belt','UL Monroe':'Sun Belt','Old Dominion':'Sun Belt',
-  'South Alabama':'Sun Belt','Southern Miss':'Sun Belt','Texas State':'Sun Belt',
+  'South Alabama':'Sun Belt','Southern Miss':'Sun Belt',
+  'Texas State':'Sun Belt','Texas St':'Sun Belt',
   'Troy':'Sun Belt',
-  'FIU':'C-USA','Florida International':'C-USA','Jacksonville State':'C-USA',
-  'Kennesaw State':'C-USA','Liberty':'C-USA','Louisiana Tech':'C-USA',
-  'Middle Tennessee':'C-USA','New Mexico State':'C-USA','Sam Houston':'C-USA',
-  'Dallas Baptist':'C-USA','DBU':'C-USA',
+  // C-USA — full names + ESPN abbreviations
+  'FIU':'C-USA','Florida International':'C-USA',
+  'Jacksonville State':'C-USA','Jacksonville St':'C-USA',
+  'Kennesaw State':'C-USA','Kennesaw St':'C-USA',
+  'Liberty':'C-USA','Louisiana Tech':'C-USA',
+  'Middle Tennessee':'C-USA',
+  'New Mexico State':'C-USA','New Mexico St':'C-USA',
+  'Sam Houston':'C-USA','Dallas Baptist':'C-USA','DBU':'C-USA',
   'UTEP':'C-USA','Western Kentucky':'C-USA','WKU':'C-USA',
-  'Cal Poly':'Big West','Cal State Fullerton':'Big West','CS Fullerton':'Big West',
-  'Cal State Northridge':'Big West','CSUN':'Big West','Hawaii':'Big West',
-  'Long Beach State':'Big West','UC Davis':'Big West','UC Irvine':'Big West',
+  // Big West — full names + ESPN abbreviations
+  'Cal Poly':'Big West','Santa Barbara':'Big West','Irvine':'Big West','Riverside':'Big West',
+  'Cal State Fullerton':'Big West','CS Fullerton':'Big West','Cal St. Fullerton':'Big West',
+  'Cal State Northridge':'Big West','CSUN':'Big West','Cal St. Northridge':'Big West',
+  'Hawaii':'Big West',
+  'Long Beach State':'Big West','Long Beach St':'Big West',
+  'UC Davis':'Big West','UC Irvine':'Big West',
   'UC Riverside':'Big West','UC San Diego':'Big West','UC Santa Barbara':'Big West',
-  'Air Force':'MWC','Fresno State':'MWC','Nevada':'MWC','New Mexico':'MWC',
-  'San Diego State':'MWC','San Jose State':'MWC','UNLV':'MWC','Utah State':'MWC',
-  'Wyoming':'MWC','Boise State':'MWC','Colorado State':'MWC',
+  // WCC
   'Gonzaga':'WCC','LMU':'WCC','Loyola Marymount':'WCC','Pepperdine':'WCC',
   'Portland':'WCC','San Diego':'WCC','San Francisco':'WCC','Santa Clara':'WCC',
-  'Saint Marys':'WCC','St. Marys':'WCC','Saint Mary':'WCC','St. Mary':'WCC',
+  'Saint Marys':'WCC','St. Marys':'WCC','Saint Mary':'WCC','St. Marys':'WCC',
+  // MVC — full names + ESPN abbreviations
   'Bradley':'MVC','Evansville':'MVC',
-  'Illinois State':'MVC','Indiana State':'MVC','Missouri State':'MVC',
-  'Southern Illinois':'MVC','SIU':'MVC','UIC':'MVC',
-  'The Citadel':'SoCon','East Tennessee State':'SoCon','ETSU':'SoCon',
+  'Illinois State':'MVC','Illinois St':'MVC',
+  'Indiana State':'MVC','Indiana St':'MVC',
+  'Missouri State':'MVC','Missouri St':'MVC',
+  'Southern Illinois':'MVC','SIU':'MVC','UIC':'MVC','Illinois-Chicago':'MVC',
+  // SoCon — full names + ESPN abbreviations
+  'The Citadel':'SoCon',
+  'East Tennessee State':'SoCon','East Tennessee St':'SoCon','ETSU':'SoCon',
   'Furman':'SoCon','Mercer':'SoCon','Samford':'SoCon','UNC Greensboro':'SoCon',
   'Western Carolina':'SoCon','Wofford':'SoCon','VMI':'SoCon',
+  // Southland — full names + ESPN abbreviations
   'Houston Christian':'Southland','HBU':'Southland',
-  'Incarnate Word':'Southland','Lamar':'Southland','McNeese':'Southland',
-  'McNeese State':'Southland','Nicholls':'Southland','Nicholls State':'Southland',
-  'Northwestern State':'Southland','SE Louisiana':'Southland',
-  'Southeastern Louisiana':'Southland','Stephen F. Austin':'Southland','SFA':'Southland',
-  'Texas A&M-Corpus Christi':'Southland',
-  'Austin Peay':'OVC','Bellarmine':'OVC','Eastern Illinois':'OVC',
-  'Eastern Kentucky':'OVC','Illinois-Chicago':'OVC','Jacksonville':'OVC',
-  'Morehead State':'OVC','Murray State':'OVC','Southern Indiana':'OVC',
-  'Tennessee Martin':'OVC','UT Martin':'OVC','Tennessee State':'OVC',
-  'Tennessee Tech':'OVC',
-  'Army':'Patriot','Bucknell':'Patriot','Holy Cross':'Patriot','Lafayette':'Patriot',
-  'Lehigh':'Patriot',
-  'Bryant':'NEC','Central Connecticut':'NEC','CCSU':'NEC','Fairleigh Dickinson':'NEC',
+  'Incarnate Word':'Southland','UIW':'Southland',
+  'Lamar':'Southland',
+  'McNeese':'Southland','McNeese State':'Southland','McNeese St':'Southland',
+  'Nicholls':'Southland','Nicholls State':'Southland','Nicholls St':'Southland',
+  'Northwestern State':'Southland','Northwestern St':'Southland',
+  'SE Louisiana':'Southland','SE La.':'Southland',
+  'Southeastern Louisiana':'Southland',
+  'Stephen F. Austin':'Southland','SFA':'Southland',
+  'Texas A&M-Corpus Christi':'Southland','Texas A&M-CC':'Southland',
+  // OVC — full names + ESPN abbreviations
+  'Austin Peay':'OVC','Bellarmine':'OVC',
+  'Eastern Illinois':'OVC',
+  'Eastern Kentucky':'OVC','Eastern KY':'OVC',
+  'Jacksonville':'OVC',
+  'Morehead State':'OVC','Morehead St':'OVC',
+  'Murray State':'OVC','Murray St':'OVC',
+  'Southern Indiana':'OVC','Southern Ind.':'OVC',
+  'Tennessee Martin':'OVC','UT Martin':'OVC',
+  'Tennessee State':'OVC','Tennessee St':'OVC',
+  'Tennessee Tech':'OVC','Illinois-Chicago':'OVC',
+  // Patriot
+  'Army':'Patriot','Bucknell':'Patriot','Holy Cross':'Patriot',
+  'Lafayette':'Patriot','Lehigh':'Patriot',
+  // NEC — full names + ESPN abbreviations
+  'Bryant':'NEC','Central Connecticut':'NEC','CCSU':'NEC',
+  'Fairleigh Dickinson':'NEC','FDU':'NEC',
   'LIU':'NEC','Long Island University':'NEC','Merrimack':'NEC',
-  'Sacred Heart':'NEC','Saint Francis':'NEC','Wagner':'NEC',
-  'Ball State':'MAC','Bowling Green':'MAC','Buffalo':'MAC','Central Michigan':'MAC',
-  'Eastern Michigan':'MAC','Kent State':'MAC','Miami (OH)':'MAC','Northern Illinois':'MAC',
+  'Sacred Heart':'NEC',
+  'Saint Francis':'NEC','St. Francis':'NEC','St. Francis (PA)':'NEC',
+  'Wagner':'NEC',
+  // MAC — full names + ESPN abbreviations
+  'Ball State':'MAC','Ball St':'MAC',
+  'Bowling Green':'MAC','Buffalo':'MAC','Central Michigan':'MAC',
+  'Eastern Michigan':'MAC',
+  'Kent State':'MAC','Kent St':'MAC',
+  'Miami (OH)':'MAC','Northern Illinois':'MAC',
   'Ohio':'MAC','Toledo':'MAC','Western Michigan':'MAC',
-  'Abilene Christian':'WAC','California Baptist':'WAC','Cal Baptist':'WAC',
+  // WAC — full names + ESPN abbreviations
+  'Abilene Christian':'WAC',
+  'California Baptist':'WAC','Cal Baptist':'WAC',
   'Grand Canyon':'WAC','GCU':'WAC',
-  'Sam Houston State':'WAC','Southern Utah':'WAC','Tarleton State':'WAC',
-  'Tarleton':'WAC','UT Arlington':'WAC','UTA':'WAC',
+  'Sam Houston State':'WAC','Sam Houston St':'WAC',
+  'Southern Utah':'WAC',
+  'Tarleton State':'WAC','Tarleton St':'WAC','Tarleton':'WAC',
+  'UT Arlington':'WAC','UTA':'WAC',
   'Utah Valley':'WAC','UVU':'WAC',
-  'Alabama A&M':'SWAC','Alabama State':'SWAC','Alcorn State':'SWAC',
-  'Arkansas-Pine Bluff':'SWAC','Bethune-Cookman':'SWAC','Florida A&M':'SWAC',
-  'Grambling':'SWAC','Grambling State':'SWAC','Jackson State':'SWAC',
-  'Mississippi Valley State':'SWAC','Prairie View A&M':'SWAC',
-  'Southern':'SWAC','Southern University':'SWAC','Texas Southern':'SWAC',
-  'Coppin State':'MEAC','Delaware State':'MEAC','Howard':'MEAC',
-  'Maryland-Eastern Shore':'MEAC','Morgan State':'MEAC','Norfolk State':'MEAC',
-  'North Carolina A&T':'MEAC','North Carolina Central':'MEAC',
-  'Savannah State':'MEAC','South Carolina State':'MEAC'
+  // SWAC — full names + ESPN abbreviations
+  'Alabama A&M':'SWAC',
+  'Alabama State':'SWAC','Alabama St':'SWAC',
+  'Alcorn State':'SWAC','Alcorn St':'SWAC',
+  'Arkansas-Pine Bluff':'SWAC','Ark.-Pine Bluff':'SWAC',
+  'Bethune-Cookman':'SWAC',
+  'Florida A&M':'SWAC',
+  'Grambling':'SWAC','Grambling State':'SWAC','Grambling St':'SWAC',
+  'Jackson State':'SWAC','Jackson St':'SWAC',
+  'Mississippi Valley State':'SWAC','Mississippi Valley St':'SWAC','MVSU':'SWAC',
+  'Prairie View A&M':'SWAC','Prairie View':'SWAC',
+  'Southern':'SWAC','Southern University':'SWAC','Southern Univ.':'SWAC',
+  'Texas Southern':'SWAC',
+  // MEAC — full names + ESPN abbreviations
+  'Coppin State':'MEAC','Coppin St':'MEAC',
+  'Delaware State':'MEAC','Delaware St':'MEAC',
+  'Howard':'MEAC',
+  'Maryland-Eastern Shore':'MEAC','MD-Eastern Shore':'MEAC',
+  'Morgan State':'MEAC','Morgan St':'MEAC',
+  'Norfolk State':'MEAC','Norfolk St':'MEAC',
+  'North Carolina A&T':'MEAC','NC A&T':'MEAC',
+  'North Carolina Central':'MEAC','NC Central':'MEAC',
+  'Savannah State':'MEAC','Savannah St':'MEAC',
+  'South Carolina State':'MEAC','South Carolina St':'MEAC','SC State':'MEAC'
 };
 
 var HBCU = { 'SWAC':1, 'MEAC':1 };
@@ -1386,6 +1465,7 @@ var stndAllRows = null;  // full D1 standings, cached after first fetch
 function openStndPanel() {
   if (slOpen) closeSlPanel();
   stndOpen = true;
+  stndAllRows = null;  // always refetch for freshest data
   document.getElementById('stndPanel').classList.add('open');
   document.getElementById('stndBtn').classList.add('open');
   fetchStandings(stndConf);
@@ -1398,45 +1478,25 @@ function closeStndPanel() {
 
 // Normalize ESPN shortDisplayName abbreviations to match CM map keys
 // ESPN abbreviates "State" → "St." or "St" — expand back for lookup
-function normalizeTeamName(name) {
-  if (!name) return name;
-  // "Mississippi St." or "Mississippi St" → "Mississippi State"
-  var n = name.replace(/St\.\s*$/, 'State').replace(/St\s*$/, 'State');
-  // "Jacksonville St." mid-string (shouldn't occur but guard anyway)
-  n = n.replace(/St\./, 'State').replace(/St(?!\s*[A-Z])/, 'State');
-  return n;
-}
-
-// Get conference for an ESPN team name — try raw, then normalized, then CM fallback chain
-function getConfEspn(espnName) {
-  var c = getConf(espnName);
-  if (c) return c;
-  var norm = normalizeTeamName(espnName);
-  if (norm !== espnName) return getConf(norm);
-  return '';
-}
-
 // Build conference W-L from allGames already loaded in the app.
-// Keys by normalized team name (State expanded). Returns { 'TeamName': {cw:0, cl:0} }
+// Keyed by g.away.name (ESPN shortDisplayName from scoreboard).
 function buildConfRecords(conf) {
   var rec = {};
   if (!allGames || !allGames.length) return rec;
   for (var gi = 0; gi < allGames.length; gi++) {
     var g = allGames[gi];
     if (g.gs !== 'final') continue;
-    // g.away.name is shortDisplayName from ESPN scoreboard
     var ac = getConf(g.away.name || '');
     var hc = getConf(g.home.name || '');
     if (ac !== conf || hc !== conf) continue;
-    var as = parseInt(g.away.score) || 0;
-    var hs = parseInt(g.home.score) || 0;
-    // Normalize to match standings row keys
-    var awn = normalizeTeamName(g.away.name || '');
-    var hwn = normalizeTeamName(g.home.name || '');
+    var asc = parseInt(g.away.score) || 0;
+    var hsc = parseInt(g.home.score) || 0;
+    var awn = g.away.name || '';
+    var hwn = g.home.name || '';
     if (!rec[awn]) rec[awn] = {cw:0, cl:0};
     if (!rec[hwn]) rec[hwn] = {cw:0, cl:0};
-    if (as > hs) { rec[awn].cw++; rec[hwn].cl++; }
-    else         { rec[hwn].cw++; rec[awn].cl++; }
+    if (asc > hsc) { rec[awn].cw++; rec[hwn].cl++; }
+    else           { rec[hwn].cw++; rec[awn].cl++; }
   }
   return rec;
 }
@@ -1472,12 +1532,17 @@ function parseAllStandings(data) {
   for (var i = 0; i < entries.length; i++) {
     var e = entries[i];
     if (!e.team) continue;
-    var espnName = e.team.shortDisplayName || e.team.displayName || '?';
+    // Use location (full proper school name) for CM conference lookup — reliable, unabbreviated
+    // e.g. location="UC Santa Barbara", shortDisplayName="Santa Barbara"
+    // e.g. location="Mississippi State", shortDisplayName="Mississippi St"
+    var locName  = e.team.location    || e.team.displayName || '';
+    var dispName = e.team.shortDisplayName || locName || '?';
+    var conf = getConf(locName) || getConf(dispName);
     var stats = e.stats || [];
-    function getStat(abbr, nameKey) {
+    function getStat(abbrKey, nameKey) {
       for (var s = 0; s < stats.length; s++) {
         var st = stats[s];
-        if (st.abbreviation === abbr || st.name === nameKey) {
+        if (st.abbreviation === abbrKey || st.name === nameKey) {
           return st.displayValue || String(st.value);
         }
       }
@@ -1487,31 +1552,27 @@ function parseAllStandings(data) {
     var l    = getStat('L',    'losses');
     var pct  = getStat('PCT',  'winPercent');
     var strk = getStat('STRK', 'streak');
-    // Overall record summary — stat with id "0" has a summary field e.g. "15-2"
-    var ovr = '';
+    var ovrStr = '';
     for (var s = 0; s < stats.length; s++) {
-      if (stats[s].id === '0' && stats[s].summary) { ovr = stats[s].summary; break; }
+      if (stats[s].id === '0' && stats[s].summary) { ovrStr = stats[s].summary; break; }
     }
-    if (!ovr) ovr = w + '-' + l;
+    if (!ovrStr) ovrStr = w + '-' + l;
     rows.push({
-      espnName: espnName,
-      team: normalizeTeamName(espnName),
-      w: parseInt(w) || 0,
-      l: parseInt(l) || 0,
-      pct: parseFloat(pct) || 0,
-      ovrStr: ovr,
+      team:   dispName,
+      conf:   conf,
+      w:      parseInt(w)   || 0,
+      l:      parseInt(l)   || 0,
+      pct:    parseFloat(pct) || 0,
+      ovrStr: ovrStr,
       pctStr: pct || '.000',
-      strk: strk || ''
+      strk:   strk || ''
     });
   }
   return rows;
 }
 
 function filterStandings(allRows, conf) {
-  var filtered = allRows.filter(function(r) {
-    return getConfEspn(r.espnName) === conf || getConf(r.team) === conf;
-  });
-  // Sort: overall PCT desc, then wins desc, then losses asc
+  var filtered = allRows.filter(function(r) { return r.conf === conf; });
   filtered.sort(function(a, b) {
     if (b.pct !== a.pct) return b.pct - a.pct;
     if (b.w   !== a.w)   return b.w   - a.w;
@@ -1519,6 +1580,7 @@ function filterStandings(allRows, conf) {
   });
   return filtered;
 }
+
 
 function renderStandings(rows, conf) {
   if (!stndOpen) return;
@@ -1540,7 +1602,7 @@ function renderStandings(rows, conf) {
   for (var ri = 0; ri < rows.length; ri++) {
     var r = rows[ri];
     // Look up conf record by normalized name or ESPN name
-    var cr = confRec[r.team] || confRec[r.espnName] || null;
+    var cr = confRec[r.team] || null;
     var confRecStr = cr ? (cr.cw + '-' + cr.cl) : '–';
     // Streak color: W = blue, L = red
     var strkColor = '';
