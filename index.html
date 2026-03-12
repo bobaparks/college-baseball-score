@@ -1549,12 +1549,12 @@ function renderNcaaStandings(data, confVal) {
 
   var html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
   html += '<thead><tr style="background:var(--accent);color:#fff;">';
-  html += '<th style="padding:5px 8px;text-align:left;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">#</th>';
-  html += '<th style="padding:5px 8px;text-align:left;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">TEAM</th>';
-  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">CONF</th>';
-  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">OVR</th>';
-  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">PCT</th>';
-  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">STRK</th>';
+  html += '<th style="padding:5px 8px;text-align:left;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">#</th>';
+  html += '<th style="padding:5px 8px;text-align:left;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">TEAM</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">CONF</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">OVR</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">PCT</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:Bebas Neue,sans-serif;letter-spacing:1px;font-size:12px;">STRK</th>';
   html += '</tr></thead><tbody>';
 
   for (var r = 0; r < rows.length; r++) {
@@ -1570,10 +1570,10 @@ function renderNcaaStandings(data, confVal) {
     html += '<tr style="background:' + bg + ';border-bottom:1px solid var(--border);">';
     html += '<td style="padding:6px 8px;color:var(--muted);font-size:9px;">' + (r+1) + '</td>';
     html += '<td style="padding:6px 8px;color:var(--text);font-weight:600;">' + (row['School']||'?') + '</td>';
-    html += '<td style="padding:6px 4px;text-align:center;color:var(--accent);font-family:'DM Mono',monospace;">' + confW + '-' + confL + '</td>';
-    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;">' + ovrW + '-' + ovrL + '</td>';
-    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;">' + pct + '</td>';
-    html += '<td style="padding:6px 4px;text-align:center;color:' + strkColor + ';font-family:'DM Mono',monospace;font-size:10px;">' + strk + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--accent);font-family:DM Mono,monospace;">' + confW + '-' + confL + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:DM Mono,monospace;">' + ovrW + '-' + ovrL + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:DM Mono,monospace;">' + pct + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:' + strkColor + ';font-family:DM Mono,monospace;font-size:10px;">' + strk + '</td>';
     html += '</tr>';
   }
   html += '</tbody></table>';
