@@ -1396,6 +1396,51 @@ function closeStndPanel() {
   document.getElementById('stndBtn').classList.remove('open');
 }
 
+// Normalize ESPN shortDisplayName abbreviations to match CM map keys
+// ESPN abbreviates "State" → "St." or "St" — expand back for lookup
+function normalizeTeamName(name) {
+  if (!name) return name;
+  // "Mississippi St." or "Mississippi St" → "Mississippi State"
+  var n = name.replace(/St\.\s*$/, 'State').replace(/St\s*$/, 'State');
+  // "Jacksonville St." mid-string (shouldn't occur but guard anyway)
+  n = n.replace(/St\./, 'State').replace(/St(?!\s*[A-Z])/, 'State');
+  return n;
+}
+
+// Get conference for an ESPN team name — try raw, then normalized, then CM fallback chain
+function getConfEspn(espnName) {
+  var c = getConf(espnName);
+  if (c) return c;
+  var norm = normalizeTeamName(espnName);
+  if (norm !== espnName) return getConf(norm);
+  return '';
+}
+
+// Build conference W-L from allGames already loaded in the app.
+// Keys by normalized team name (State expanded). Returns { 'TeamName': {cw:0, cl:0} }
+function buildConfRecords(conf) {
+  var rec = {};
+  if (!allGames || !allGames.length) return rec;
+  for (var gi = 0; gi < allGames.length; gi++) {
+    var g = allGames[gi];
+    if (g.gs !== 'final') continue;
+    // g.away.name is shortDisplayName from ESPN scoreboard
+    var ac = getConf(g.away.name || '');
+    var hc = getConf(g.home.name || '');
+    if (ac !== conf || hc !== conf) continue;
+    var as = parseInt(g.away.score) || 0;
+    var hs = parseInt(g.home.score) || 0;
+    // Normalize to match standings row keys
+    var awn = normalizeTeamName(g.away.name || '');
+    var hwn = normalizeTeamName(g.home.name || '');
+    if (!rec[awn]) rec[awn] = {cw:0, cl:0};
+    if (!rec[hwn]) rec[hwn] = {cw:0, cl:0};
+    if (as > hs) { rec[awn].cw++; rec[hwn].cl++; }
+    else         { rec[hwn].cw++; rec[awn].cl++; }
+  }
+  return rec;
+}
+
 function fetchStandings(conf) {
   var body = document.getElementById('stndBody');
   if (stndAllRows) { renderStandings(filterStandings(stndAllRows, conf), conf); return; }
@@ -1419,7 +1464,6 @@ function fetchStandings(conf) {
 }
 
 function parseAllStandings(data) {
-  // Traverse children to find Division I entries
   var node = data;
   if (data.children && data.children.length) node = data.children[0];
   if (node.children && node.children.length) node = node.children[0];
@@ -1428,42 +1472,50 @@ function parseAllStandings(data) {
   for (var i = 0; i < entries.length; i++) {
     var e = entries[i];
     if (!e.team) continue;
-    var teamName = e.team.shortDisplayName || e.team.displayName || '?';
+    var espnName = e.team.shortDisplayName || e.team.displayName || '?';
     var stats = e.stats || [];
     function getStat(abbr, nameKey) {
       for (var s = 0; s < stats.length; s++) {
         var st = stats[s];
-        if (st.abbreviation === abbr || st.name === nameKey || st.name === abbr) {
+        if (st.abbreviation === abbr || st.name === nameKey) {
           return st.displayValue || String(st.value);
         }
       }
       return '';
     }
-    // Overall W, L, PCT from abbreviations confirmed in live API response
-    var w   = getStat('W',   'wins');
-    var l   = getStat('L',   'losses');
-    var pct = getStat('PCT', 'winPercent');
-    // Overall record summary e.g. "16-0"  — stored as stat with id "0"
+    var w    = getStat('W',    'wins');
+    var l    = getStat('L',    'losses');
+    var pct  = getStat('PCT',  'winPercent');
+    var strk = getStat('STRK', 'streak');
+    // Overall record summary — stat with id "0" has a summary field e.g. "15-2"
     var ovr = '';
     for (var s = 0; s < stats.length; s++) {
       if (stats[s].id === '0' && stats[s].summary) { ovr = stats[s].summary; break; }
     }
     if (!ovr) ovr = w + '-' + l;
-    // Run differential
-    var diff = getStat('DIFF', 'pointDifferential');
-    rows.push({ team: teamName, w: w, l: l, pct: pct, ovr: ovr, diff: diff });
+    rows.push({
+      espnName: espnName,
+      team: normalizeTeamName(espnName),
+      w: parseInt(w) || 0,
+      l: parseInt(l) || 0,
+      pct: parseFloat(pct) || 0,
+      ovrStr: ovr,
+      pctStr: pct || '.000',
+      strk: strk || ''
+    });
   }
   return rows;
 }
 
 function filterStandings(allRows, conf) {
-  var filtered = allRows.filter(function(r) { return getConf(r.team) === conf; });
-  // Sort by wins desc, then losses asc
+  var filtered = allRows.filter(function(r) {
+    return getConfEspn(r.espnName) === conf || getConf(r.team) === conf;
+  });
+  // Sort: overall PCT desc, then wins desc, then losses asc
   filtered.sort(function(a, b) {
-    var wa = parseInt(a.w) || 0, wb = parseInt(b.w) || 0;
-    var la = parseInt(a.l) || 0, lb = parseInt(b.l) || 0;
-    if (wb !== wa) return wb - wa;
-    return la - lb;
+    if (b.pct !== a.pct) return b.pct - a.pct;
+    if (b.w   !== a.w)   return b.w   - a.w;
+    return a.l - b.l;
   });
   return filtered;
 }
@@ -1472,24 +1524,40 @@ function renderStandings(rows, conf) {
   if (!stndOpen) return;
   var body = document.getElementById('stndBody');
   if (!rows || rows.length === 0) {
-    body.innerHTML = '<div class="stnd-loading">NO DATA &mdash; CONFERENCE PLAY MAY NOT HAVE STARTED</div>';
+    body.innerHTML = '<div class="stnd-loading">NO TEAMS FOUND FOR ' + conf.toUpperCase() + '</div>';
     return;
   }
-  var html = '<div class="sl-grid"><div class="sl-card">';
-  html += '<div class="sl-card-hdr"><span>' + conf.toUpperCase() + ' STANDINGS</span>'
-        + '<span class="sl-card-conf" style="opacity:.7;font-size:8px;letter-spacing:1px">W-L &bull; PCT</span>'
+  // Build conf records from loaded games
+  var confRec = buildConfRecords(conf);
+
+  var html = '<div class="sl-grid"><div class="sl-card" style="min-width:0">';
+  html += '<div class="sl-card-hdr">'
+        + '<span>' + conf.toUpperCase() + ' STANDINGS</span>'
+        + '<span class="sl-card-conf" style="opacity:.75;font-size:8px;letter-spacing:1px;font-family:monospace">'
+        + 'OVR&nbsp;&nbsp;&nbsp;CONF&nbsp;&nbsp;&nbsp;STRK</span>'
         + '</div>';
+
   for (var ri = 0; ri < rows.length; ri++) {
     var r = rows[ri];
+    // Look up conf record by normalized name or ESPN name
+    var cr = confRec[r.team] || confRec[r.espnName] || null;
+    var confRecStr = cr ? (cr.cw + '-' + cr.cl) : '–';
+    // Streak color: W = blue, L = red
+    var strkColor = '';
+    if (r.strk) {
+      strkColor = r.strk.charAt(0) === 'W' ? 'color:var(--blue)' : 'color:var(--red)';
+    }
     html += '<div class="sl-row">'
           + '<span class="sl-rank">' + (ri + 1) + '</span>'
           + '<div style="flex:1;min-width:0">'
           +   '<div class="sl-player">' + r.team + '</div>'
-          +   '<div class="sl-team">' + r.ovr
-          +     (r.diff ? '&nbsp;&nbsp;' + (r.diff.charAt(0)==='-' ? '' : r.diff.charAt(0)==='+' ? '' : '') + r.diff + ' RD' : '')
+          +   '<div class="sl-team" style="display:flex;gap:10px;font-size:9px;margin-top:2px">'
+          +     '<span title="Overall">' + r.ovrStr + '</span>'
+          +     '<span title="Conference" style="color:var(--accent)">' + confRecStr + '</span>'
+          +     (r.strk ? '<span title="Streak" style="' + strkColor + '">' + r.strk + '</span>' : '')
           +   '</div>'
           + '</div>'
-          + '<span class="sl-val" style="font-size:15px;min-width:44px;text-align:right">' + (r.pct || '.000') + '</span>'
+          + '<span class="sl-val" style="font-size:14px;min-width:40px;text-align:right">' + r.pctStr + '</span>'
           + '</div>';
   }
   html += '</div></div>';
