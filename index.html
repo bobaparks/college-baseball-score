@@ -1459,187 +1459,144 @@ document.addEventListener('click', function(e) {
 
 // ── Standings Panel ───────────────────────────────────────────────────────────
 var stndOpen = false;
-var stndConf = 'SEC';
-var stndAllRows = null;  // full D1 standings, cached after first fetch
+var stndConf = 'sec';
+
+// Map dropdown option values to NCAA API conference slugs
+var CONF_SLUGS = {
+  'SEC': 'sec', 'ACC': 'acc', 'Big 12': 'big-12', 'Big Ten': 'big-ten',
+  'American': 'american-athletic', 'Sun Belt': 'sun-belt', 'C-USA': 'c-usa',
+  'Big West': 'big-west', 'MWC': 'mountain-west', 'WCC': 'wcc',
+  'MVC': 'missouri-valley', 'SoCon': 'southern', 'Southland': 'southland',
+  'OVC': 'ohio-valley', 'Patriot': 'patriot-league', 'NEC': 'northeast',
+  'MAC': 'mid-american', 'WAC': 'wac', 'Pac-12': 'pac-12',
+  'SWAC': 'southwestern-athletic', 'MEAC': 'mid-eastern-athletic'
+};
 
 function openStndPanel() {
-  if (slOpen) closeSlPanel();
+  if (slOpen) closeSLPanel();
   stndOpen = true;
-  stndAllRows = null;  // always refetch for freshest data
-  document.getElementById('stndPanel').classList.add('open');
-  document.getElementById('stndBtn').classList.add('open');
-  fetchStandings(stndConf);
+  document.getElementById('stndPanel').style.display = 'block';
+  fetchNcaaStandings(stndConf);
 }
+
 function closeStndPanel() {
   stndOpen = false;
-  document.getElementById('stndPanel').classList.remove('open');
-  document.getElementById('stndBtn').classList.remove('open');
+  document.getElementById('stndPanel').style.display = 'none';
 }
 
-// Normalize ESPN shortDisplayName abbreviations to match CM map keys
-// ESPN abbreviates "State" → "St." or "St" — expand back for lookup
-// Build conference W-L from allGames already loaded in the app.
-// Keyed by g.away.name (ESPN shortDisplayName from scoreboard).
-function buildConfRecords(conf) {
-  var rec = {};
-  if (!allGames || !allGames.length) return rec;
-  for (var gi = 0; gi < allGames.length; gi++) {
-    var g = allGames[gi];
-    if (g.gs !== 'final') continue;
-    var ac = getConf(g.away.name || '');
-    var hc = getConf(g.home.name || '');
-    if (ac !== conf || hc !== conf) continue;
-    var asc = parseInt(g.away.score) || 0;
-    var hsc = parseInt(g.home.score) || 0;
-    var awn = g.away.name || '';
-    var hwn = g.home.name || '';
-    if (!rec[awn]) rec[awn] = {cw:0, cl:0};
-    if (!rec[hwn]) rec[hwn] = {cw:0, cl:0};
-    if (asc > hsc) { rec[awn].cw++; rec[hwn].cl++; }
-    else           { rec[hwn].cw++; rec[awn].cl++; }
-  }
-  return rec;
-}
-
-function fetchStandings(conf) {
+function fetchNcaaStandings(confVal) {
+  var slug = CONF_SLUGS[confVal] || confVal.toLowerCase().replace(/\s+/g, '-');
+  var ncaaUrl = 'https://ncaa-api.henrygd.me/standings/baseball/d1/' + slug;
+  var urls = [
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(ncaaUrl),
+    'https://corsproxy.io/?url=' + encodeURIComponent(ncaaUrl)
+  ];
   var body = document.getElementById('stndBody');
-  if (stndAllRows) { renderStandings(filterStandings(stndAllRows, conf), conf); return; }
-  body.innerHTML = '<div class="stnd-loading">LOADING STANDINGS&hellip;</div>';
-  var url = 'https://site.api.espn.com/apis/v2/sports/baseball/college-baseball/standings';
-  var proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
-  function tryUrl(u, fallback) {
-    fetch(u).then(function(r) { return r.json(); }).then(function(data) {
-      var rows = parseAllStandings(data);
-      if (!rows || rows.length === 0) throw new Error('empty');
-      stndAllRows = rows;
-      renderStandings(filterStandings(rows, conf), conf);
-      var stndUpd = document.getElementById('stndUpdated');
-      if (stndUpd) stndUpd.textContent = fmtNow();
-    }).catch(function() {
-      if (fallback) { tryUrl(fallback, null); }
-      else { body.innerHTML = '<div class="stnd-loading">STANDINGS UNAVAILABLE &mdash; CHECK BACK LATER</div>'; }
-    });
+  body.innerHTML = '<div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">LOADING&hellip;</div>';
+
+  function tryUrl(i) {
+    if (i >= urls.length) {
+      body.innerHTML = '<div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">STANDINGS UNAVAILABLE</div>';
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', urls[i], true);
+    xhr.timeout = 8000;
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          renderNcaaStandings(data, confVal);
+        } catch(e) { tryUrl(i + 1); }
+      } else { tryUrl(i + 1); }
+    };
+    xhr.onerror = xhr.ontimeout = function() { tryUrl(i + 1); };
+    xhr.send();
   }
-  tryUrl(url, proxy);
+  tryUrl(0);
 }
 
-function parseAllStandings(data) {
-  var node = data;
-  if (data.children && data.children.length) node = data.children[0];
-  if (node.children && node.children.length) node = node.children[0];
-  var entries = (node.standings && node.standings.entries) ? node.standings.entries : [];
+function renderNcaaStandings(data, confVal) {
+  // NCAA API returns { data: [ { conference, standings: [...] } ] } for all confs
+  // or { standings: [...] } for a single conf slug fetch
   var rows = [];
-  for (var i = 0; i < entries.length; i++) {
-    var e = entries[i];
-    if (!e.team) continue;
-    // Use location (full proper school name) for CM conference lookup — reliable, unabbreviated
-    // e.g. location="UC Santa Barbara", shortDisplayName="Santa Barbara"
-    // e.g. location="Mississippi State", shortDisplayName="Mississippi St"
-    var locName  = e.team.location    || e.team.displayName || '';
-    var dispName = e.team.shortDisplayName || locName || '?';
-    var conf = getConf(locName) || getConf(dispName);
-    var stats = e.stats || [];
-    function getStat(abbrKey, nameKey) {
-      for (var s = 0; s < stats.length; s++) {
-        var st = stats[s];
-        if (st.abbreviation === abbrKey || st.name === nameKey) {
-          return st.displayValue || String(st.value);
-        }
-      }
-      return '';
+  if (data.standings) {
+    rows = data.standings;
+  } else if (data.data && data.data.length) {
+    // find matching conf or just use first
+    for (var i = 0; i < data.data.length; i++) {
+      if (data.data[i].standings) { rows = data.data[i].standings; break; }
     }
-    var w    = getStat('W',    'wins');
-    var l    = getStat('L',    'losses');
-    var pct  = getStat('PCT',  'winPercent');
-    var strk = getStat('STRK', 'streak');
-    var ovrStr = '';
-    for (var s = 0; s < stats.length; s++) {
-      if (stats[s].id === '0' && stats[s].summary) { ovrStr = stats[s].summary; break; }
-    }
-    if (!ovrStr) ovrStr = w + '-' + l;
-    rows.push({
-      team:   dispName,
-      conf:   conf,
-      w:      parseInt(w)   || 0,
-      l:      parseInt(l)   || 0,
-      pct:    parseFloat(pct) || 0,
-      ovrStr: ovrStr,
-      pctStr: pct || '.000',
-      strk:   strk || ''
-    });
   }
-  return rows;
-}
 
-function filterStandings(allRows, conf) {
-  var filtered = allRows.filter(function(r) { return r.conf === conf; });
-  filtered.sort(function(a, b) {
-    if (b.pct !== a.pct) return b.pct - a.pct;
-    if (b.w   !== a.w)   return b.w   - a.w;
-    return a.l - b.l;
-  });
-  return filtered;
-}
-
-
-function renderStandings(rows, conf) {
-  if (!stndOpen) return;
   var body = document.getElementById('stndBody');
-  if (!rows || rows.length === 0) {
-    body.innerHTML = '<div class="stnd-loading">NO TEAMS FOUND FOR ' + conf.toUpperCase() + '</div>';
+  var upd = document.getElementById('stndUpdated');
+  var now = new Date();
+  upd.textContent = 'UPDATED ' + (now.getMonth()+1) + '/' + now.getDate() + ' ' +
+    now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+  if (!rows.length) {
+    body.innerHTML = '<div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">NO DATA YET</div>';
     return;
   }
-  // Build conf records from loaded games
-  var confRec = buildConfRecords(conf);
 
-  var html = '<div class="sl-grid"><div class="sl-card" style="min-width:0">';
-  html += '<div class="sl-card-hdr">'
-        + '<span>' + conf.toUpperCase() + ' STANDINGS</span>'
-        + '<span class="sl-card-conf" style="opacity:.75;font-size:8px;letter-spacing:1px;font-family:monospace">'
-        + 'OVR&nbsp;&nbsp;&nbsp;CONF&nbsp;&nbsp;&nbsp;STRK</span>'
-        + '</div>';
+  // Sort by Conference PCT desc, then Overall PCT desc
+  rows = rows.slice().sort(function(a, b) {
+    var cp = parseFloat(b['Conference PCT']||0) - parseFloat(a['Conference PCT']||0);
+    if (cp !== 0) return cp;
+    return parseFloat(b['Overall PCT']||0) - parseFloat(a['Overall PCT']||0);
+  });
 
-  for (var ri = 0; ri < rows.length; ri++) {
-    var r = rows[ri];
-    // Look up conf record by normalized name or ESPN name
-    var cr = confRec[r.team] || null;
-    var confRecStr = cr ? (cr.cw + '-' + cr.cl) : '–';
-    // Streak color: W = blue, L = red
-    var strkColor = '';
-    if (r.strk) {
-      strkColor = r.strk.charAt(0) === 'W' ? 'color:var(--blue)' : 'color:var(--red)';
-    }
-    html += '<div class="sl-row">'
-          + '<span class="sl-rank">' + (ri + 1) + '</span>'
-          + '<div style="flex:1;min-width:0">'
-          +   '<div class="sl-player">' + r.team + '</div>'
-          +   '<div class="sl-team" style="display:flex;gap:10px;font-size:9px;margin-top:2px">'
-          +     '<span title="Overall">' + r.ovrStr + '</span>'
-          +     '<span title="Conference" style="color:var(--accent)">' + confRecStr + '</span>'
-          +     (r.strk ? '<span title="Streak" style="' + strkColor + '">' + r.strk + '</span>' : '')
-          +   '</div>'
-          + '</div>'
-          + '<span class="sl-val" style="font-size:14px;min-width:40px;text-align:right">' + r.pctStr + '</span>'
-          + '</div>';
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr style="background:var(--accent);color:#fff;">';
+  html += '<th style="padding:5px 8px;text-align:left;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">#</th>';
+  html += '<th style="padding:5px 8px;text-align:left;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">TEAM</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">CONF</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">OVR</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">PCT</th>';
+  html += '<th style="padding:5px 4px;text-align:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:12px;">STRK</th>';
+  html += '</tr></thead><tbody>';
+
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    var strk = row['Overall STREAK'] || '-';
+    var strkColor = strk.indexOf('Won') === 0 ? 'var(--blue)' : strk.indexOf('Lost') === 0 ? 'var(--red)' : 'var(--muted)';
+    var confW = row['Conference W'] || '0';
+    var confL = row['Conference L'] || '0';
+    var ovrW  = row['Overall W'] || '0';
+    var ovrL  = row['Overall L'] || '0';
+    var pct   = row['Conference PCT'] || row['Overall PCT'] || '-';
+    var bg = r % 2 === 0 ? 'var(--surface)' : 'var(--surface2)';
+    html += '<tr style="background:' + bg + ';border-bottom:1px solid var(--border);">';
+    html += '<td style="padding:6px 8px;color:var(--muted);font-size:9px;">' + (r+1) + '</td>';
+    html += '<td style="padding:6px 8px;color:var(--text);font-weight:600;">' + (row['School']||'?') + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--accent);font-family:'DM Mono',monospace;">' + confW + '-' + confL + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;">' + ovrW + '-' + ovrL + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;">' + pct + '</td>';
+    html += '<td style="padding:6px 4px;text-align:center;color:' + strkColor + ';font-family:'DM Mono',monospace;font-size:10px;">' + strk + '</td>';
+    html += '</tr>';
   }
-  html += '</div></div>';
+  html += '</tbody></table>';
   body.innerHTML = html;
 }
+
 document.getElementById('stndBtn').addEventListener('click', function() {
-  stndOpen ? closeStndPanel() : openStndPanel();
+  if (stndOpen) { closeStndPanel(); return; }
+  // set dropdown to match current stndConf
+  var sel = document.getElementById('stndConfSel');
+  sel.value = stndConf;
+  openStndPanel();
 });
 document.getElementById('stndClose').addEventListener('click', closeStndPanel);
-
 document.getElementById('stndConfSel').addEventListener('change', function() {
   stndConf = this.value;
-  if (stndOpen) fetchStandings(stndConf);
+  if (stndOpen) fetchNcaaStandings(stndConf);
 });
-
 // Close standings panel on outside click
 document.addEventListener('click', function(e) {
   if (!stndOpen) return;
-  var wrap = document.getElementById('stndWrap');
-  var btn  = document.getElementById('stndBtn');
+  var wrap = document.getElementById('stndPanel');
+  var btn = document.getElementById('stndBtn');
   if (!wrap.contains(e.target) && !btn.contains(e.target)) closeStndPanel();
 });
 
