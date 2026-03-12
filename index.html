@@ -344,6 +344,8 @@
   .sl-val { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--accent);
     letter-spacing:1px; min-width:44px; text-align:right; }
   .sl-val.pitcher { color:var(--blue); }
+  .sl-updated { margin-left:auto; font-size:8px; color:var(--muted); letter-spacing:1.5px;
+    font-family:'DM Mono',monospace; white-space:nowrap; }
 
   /* ── Standings Panel ── */
   .stnd-loading { font-size:10px; color:var(--muted); letter-spacing:2px; padding:8px 0; }
@@ -500,6 +502,7 @@
           <option value="SWAC">SWAC (HBCU)</option>
           <option value="MEAC">MEAC (HBCU)</option>
         </select>
+        <span class="sl-updated" id="slUpdated"></span>
         <button class="sl-close" id="slClose">&#10005; CLOSE</button>
       </div>
       <div class="sl-grid" id="slGrid">
@@ -538,6 +541,7 @@
           <option value="SWAC">SWAC</option>
           <option value="MEAC">MEAC</option>
         </select>
+        <span class="sl-updated" id="stndUpdated"></span>
         <button class="sl-close" id="stndClose">&#10005; CLOSE</button>
       </div>
       <div id="stndBody"><div style="font-size:10px;color:var(--muted);letter-spacing:2px;padding:8px 0">SELECT A CONFERENCE&hellip;</div></div>
@@ -1246,6 +1250,13 @@ function buildTicker() {
 }
 
 // ── Stats Leaders Panel ──────────────────────────────────────────────────────
+function fmtNow() {
+  var d = new Date();
+  var h = d.getHours(), m = d.getMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return 'UPDATED ' + h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+}
 var slOpen     = false;
 var slScope    = 'overall';  // 'overall' | 'conf'
 var slConfFilt = 'all';
@@ -1397,6 +1408,8 @@ function fetchStandings(conf) {
       if (!rows || rows.length === 0) throw new Error('empty');
       stndAllRows = rows;
       renderStandings(filterStandings(rows, conf), conf);
+      var stndUpd = document.getElementById('stndUpdated');
+      if (stndUpd) stndUpd.textContent = fmtNow();
     }).catch(function() {
       if (fallback) { tryUrl(fallback, null); }
       else { body.innerHTML = '<div class="stnd-loading">STANDINGS UNAVAILABLE &mdash; CHECK BACK LATER</div>'; }
@@ -1709,6 +1722,8 @@ function seedStats() {
   statsBuilt = true;
   renderStatsTicker();
   if (slOpen) renderSlGrid();
+  var slUpd = document.getElementById('slUpdated');
+  if (slUpd && !slUpd.dataset.live) slUpd.textContent = 'SEED DATA';
 }
 
 function fetchAllStats() {
@@ -1759,6 +1774,8 @@ function fetchAllStats() {
           console.log('Stats: live ' + sp.cat + ' loaded (' + fresh.length + ' entries)');
           if (statsScope === 'overall') renderStatsTicker();
           if (slOpen) renderSlGrid();
+          var slUpd = document.getElementById('slUpdated');
+          if (slUpd) { slUpd.textContent = fmtNow(); slUpd.dataset.live = '1'; }
         } else {
           console.warn('Stats: ' + sp.cat + ' live returned only ' + fresh.length + ' — keeping seed');
         }
