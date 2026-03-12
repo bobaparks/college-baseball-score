@@ -438,26 +438,35 @@
     <option value="all">ALL CONFERENCES</option>
     <option value="hbcu">&#9733; HBCU (ALL)</option>
     <option value="SWAC">SWAC (HBCU)</option>
-    <option value="MEAC">MEAC (HBCU)</option>
     <option value="SEC">SEC</option>
     <option value="ACC">ACC</option>
-    <option value="Pac-12">Pac-12 (Oregon St.)</option>
     <option value="Big 12">Big 12</option>
     <option value="Big Ten">Big Ten</option>
     <option value="American">American Athletic</option>
     <option value="Sun Belt">Sun Belt</option>
     <option value="C-USA">Conference USA</option>
-    <option value="Big West">Big West</option>
     <option value="MWC">Mountain West</option>
-    <option value="WCC">WCC</option>
-    <option value="MVC">Missouri Valley</option>
-    <option value="SoCon">Southern</option>
+    <option value="Big West">Big West</option>
+    <option value="WCC">West Coast (WCC)</option>
+    <option value="ASUN">ASUN</option>
+    <option value="Big South">Big South</option>
+    <option value="Coastal">Coastal Athletic</option>
+    <option value="SoCon">Southern (SoCon)</option>
     <option value="Southland">Southland</option>
     <option value="OVC">Ohio Valley</option>
-    <option value="Patriot">Patriot League</option>
-    <option value="NEC">Northeast</option>
+    <option value="MVC">Missouri Valley</option>
     <option value="MAC">MAC</option>
+    <option value="Patriot">Patriot League</option>
+    <option value="NEC">Northeast (NEC)</option>
+    <option value="Atlantic 10">Atlantic 10</option>
+    <option value="Big East">Big East</option>
+    <option value="America East">America East</option>
+    <option value="MAAC">Metro Atlantic (MAAC)</option>
+    <option value="Horizon">Horizon League</option>
+    <option value="Summit">Summit League</option>
+    <option value="Ivy">Ivy League</option>
     <option value="WAC">WAC</option>
+    <option value="Pac-12">Pac-12 (Oregon St.)</option>
   </select>
   <span class="flabel" style="margin-left:8px">PANELS</span>
   <button class="sl-btn" id="slBtn">&#9776; STAT LEADERS</button>
@@ -487,20 +496,29 @@
           <option value="American">American Athletic</option>
           <option value="Sun Belt">Sun Belt</option>
           <option value="C-USA">Conference USA</option>
-          <option value="Big West">Big West</option>
           <option value="MWC">Mountain West</option>
-          <option value="WCC">WCC</option>
-          <option value="MVC">Missouri Valley</option>
-          <option value="SoCon">Southern</option>
+          <option value="Big West">Big West</option>
+          <option value="WCC">West Coast (WCC)</option>
+          <option value="ASUN">ASUN</option>
+          <option value="Big South">Big South</option>
+          <option value="Coastal">Coastal Athletic</option>
+          <option value="SoCon">Southern (SoCon)</option>
           <option value="Southland">Southland</option>
           <option value="OVC">Ohio Valley</option>
-          <option value="Patriot">Patriot League</option>
-          <option value="NEC">Northeast</option>
+          <option value="MVC">Missouri Valley</option>
           <option value="MAC">MAC</option>
+          <option value="Patriot">Patriot League</option>
+          <option value="NEC">Northeast (NEC)</option>
+          <option value="Atlantic 10">Atlantic 10</option>
+          <option value="Big East">Big East</option>
+          <option value="America East">America East</option>
+          <option value="MAAC">Metro Atlantic (MAAC)</option>
+          <option value="Horizon">Horizon League</option>
+          <option value="Summit">Summit League</option>
+          <option value="Ivy">Ivy League</option>
           <option value="WAC">WAC</option>
-          <option value="Pac-12">Pac-12</option>
           <option value="SWAC">SWAC (HBCU)</option>
-          <option value="MEAC">MEAC (HBCU)</option>
+          <option value="Pac-12">Pac-12 (Oregon St.)</option>
         </select>
         <span class="sl-updated" id="slUpdated"></span>
         <button class="sl-close" id="slClose">&#10005; CLOSE</button>
@@ -526,20 +544,28 @@
           <option value="American">American Athletic</option>
           <option value="Sun Belt">Sun Belt</option>
           <option value="C-USA">Conference USA</option>
-          <option value="Big West">Big West</option>
           <option value="MWC">Mountain West</option>
-          <option value="WCC">WCC</option>
-          <option value="MVC">Missouri Valley</option>
-          <option value="SoCon">Southern</option>
+          <option value="Big West">Big West</option>
+          <option value="WCC">West Coast (WCC)</option>
+          <option value="ASUN">ASUN</option>
+          <option value="Big South">Big South</option>
+          <option value="Coastal">Coastal Athletic</option>
+          <option value="SoCon">Southern (SoCon)</option>
           <option value="Southland">Southland</option>
           <option value="OVC">Ohio Valley</option>
-          <option value="Patriot">Patriot League</option>
-          <option value="NEC">Northeast</option>
+          <option value="MVC">Missouri Valley</option>
           <option value="MAC">MAC</option>
+          <option value="Patriot">Patriot League</option>
+          <option value="NEC">Northeast (NEC)</option>
+          <option value="Atlantic 10">Atlantic 10</option>
+          <option value="Big East">Big East</option>
+          <option value="America East">America East</option>
+          <option value="MAAC">Metro Atlantic (MAAC)</option>
+          <option value="Horizon">Horizon League</option>
+          <option value="Summit">Summit League</option>
+          <option value="Ivy">Ivy League</option>
           <option value="WAC">WAC</option>
-          <option value="Pac-12">Pac-12</option>
-          <option value="SWAC">SWAC</option>
-          <option value="MEAC">MEAC</option>
+          <option value="SWAC">SWAC (HBCU)</option>
         </select>
         <span class="sl-updated" id="stndUpdated"></span>
         <button class="sl-close" id="stndClose">&#10005; CLOSE</button>
@@ -703,174 +729,282 @@ var SD = {
 
 // ── Conference map (keyed on ESPN shortDisplayName) ───────────────────────────
 var CM = {
-  // ACC — full names + ESPN abbreviations
+  // ACC
   'Boston College':'ACC','Clemson':'ACC','Duke':'ACC',
   'Florida State':'ACC','Florida St':'ACC',
-  'Georgia Tech':'ACC','Louisville':'ACC','Miami':'ACC',
+  'Georgia Tech':'ACC','Louisville':'ACC',
+  'Miami':'ACC','Miami (FL)':'ACC','Miami (Fla.)':'ACC',
   'NC State':'ACC','North Carolina':'ACC','Notre Dame':'ACC',
-  'Pittsburgh':'ACC','Virginia':'ACC','Virginia Tech':'ACC','Wake Forest':'ACC',
-  'Oregon':'ACC','Stanford':'ACC','Cal':'ACC','California':'ACC',
-  // SEC — full names + ESPN abbreviations
+  'Pittsburgh':'ACC','Pitt':'ACC',
+  'Stanford':'ACC','Virginia':'ACC','Virginia Tech':'ACC','Wake Forest':'ACC',
+  'Cal':'ACC','California':'ACC',
+  // SEC
   'Alabama':'SEC','Arkansas':'SEC','Auburn':'SEC','Florida':'SEC',
   'Georgia':'SEC','Kentucky':'SEC','LSU':'SEC',
   'Mississippi State':'SEC','Mississippi St':'SEC',
   'Missouri':'SEC','Ole Miss':'SEC','Oklahoma':'SEC','South Carolina':'SEC',
   'Tennessee':'SEC','Texas':'SEC','Texas A&M':'SEC','Vanderbilt':'SEC',
-  // Big 12 — full names + ESPN abbreviations
+  // Big 12
+  'Arizona':'Big 12','Arizona State':'Big 12','Arizona St':'Big 12',
   'Baylor':'Big 12','BYU':'Big 12','Cincinnati':'Big 12','Houston':'Big 12',
-  'Iowa State':'Big 12','Iowa St':'Big 12',
-  'Kansas':'Big 12',
-  'Kansas State':'Big 12','Kansas St':'Big 12',
+  'Kansas':'Big 12','Kansas State':'Big 12','Kansas St':'Big 12',
   'Oklahoma State':'Big 12','Oklahoma St':'Big 12',
-  'TCU':'Big 12','Texas Tech':'Big 12','UCF':'Big 12','West Virginia':'Big 12',
-  'Arizona':'Big 12',
-  'Arizona State':'Big 12','Arizona St':'Big 12',
-  'Colorado':'Big 12','Utah':'Big 12','Washington':'Big 12',
-  // Big Ten — full names + ESPN abbreviations
+  'TCU':'Big 12','Texas Tech':'Big 12','UCF':'Big 12',
+  'Utah':'Big 12','West Virginia':'Big 12',
+  // Big Ten
   'Illinois':'Big Ten','Indiana':'Big Ten','Iowa':'Big Ten','Maryland':'Big Ten',
-  'Michigan':'Big Ten',
-  'Michigan State':'Big Ten','Michigan St':'Big Ten',
+  'Michigan':'Big Ten','Michigan State':'Big Ten','Michigan St':'Big Ten',
   'Minnesota':'Big Ten','Nebraska':'Big Ten','Northwestern':'Big Ten',
   'Ohio State':'Big Ten','Ohio St':'Big Ten',
+  'Oregon':'Big Ten',
   'Penn State':'Big Ten','Penn St':'Big Ten',
-  'Purdue':'Big Ten','Rutgers':'Big Ten','UCLA':'Big Ten','USC':'Big Ten',
-  // MWC — full names + ESPN abbreviations
-  'Washington State':'MWC','Washington St':'MWC',
-  'Air Force':'MWC',
-  'Boise State':'MWC','Boise St':'MWC',
-  'Colorado State':'MWC','Colorado St':'MWC',
-  'Fresno State':'MWC','Fresno St':'MWC',
-  'Nevada':'MWC','New Mexico':'MWC',
-  'San Diego State':'MWC','San Diego St':'MWC',
-  'San Jose State':'MWC','San Jose St':'MWC',
-  'UNLV':'MWC',
-  'Utah State':'MWC','Utah St':'MWC',
-  'Wyoming':'MWC',
-  // Pac-12
-  'Oregon State':'Pac-12','Oregon St':'Pac-12',
+  'Purdue':'Big Ten','Rutgers':'Big Ten',
+  'UCLA':'Big Ten','USC':'Big Ten','Washington':'Big Ten',
   // American Athletic
-  'Charlotte':'American','East Carolina':'American','Florida Atlantic':'American',
-  'Memphis':'American','Navy':'American','Rice':'American','South Florida':'American',
-  'Temple':'American','Tulane':'American','Tulsa':'American','UTSA':'American',
-  'Wichita State':'American','Wichita St':'American',
-  // Sun Belt — full names + ESPN abbreviations
+  'Charlotte':'American','East Carolina':'American',
+  'FAU':'American','Florida Atlantic':'American',
+  'Memphis':'American','Rice':'American',
+  'Tulane':'American','UAB':'American',
+  'USF':'American','South Florida':'American',
+  'UTSA':'American','Wichita State':'American','Wichita St':'American',
+  // Sun Belt
   'App State':'Sun Belt','Appalachian State':'Sun Belt','Appalachian St':'Sun Belt',
-  'Arkansas State':'Sun Belt','Arkansas St':'Sun Belt',
+  'Arkansas State':'Sun Belt','Arkansas St':'Sun Belt','Ark. State':'Sun Belt',
   'Coastal Carolina':'Sun Belt',
-  'Georgia Southern':'Sun Belt',
-  'Georgia State':'Sun Belt','Georgia St':'Sun Belt',
-  'James Madison':'Sun Belt','Louisiana':'Sun Belt','UL Lafayette':'Sun Belt',
-  'Louisiana Monroe':'Sun Belt','UL Monroe':'Sun Belt','Old Dominion':'Sun Belt',
+  'Georgia Southern':'Sun Belt','Georgia State':'Sun Belt','Georgia St':'Sun Belt',
+  'James Madison':'Sun Belt',
+  'Louisiana':'Sun Belt','UL Lafayette':'Sun Belt',
+  'Marshall':'Sun Belt',
+  'Old Dominion':'Sun Belt',
   'South Alabama':'Sun Belt','Southern Miss':'Sun Belt',
   'Texas State':'Sun Belt','Texas St':'Sun Belt',
   'Troy':'Sun Belt',
-  // C-USA — full names + ESPN abbreviations
+  'ULM':'Sun Belt','Louisiana Monroe':'Sun Belt','UL Monroe':'Sun Belt',
+  // C-USA
+  'DBU':'C-USA','Dallas Baptist':'C-USA',
+  'Delaware':'C-USA',
   'FIU':'C-USA','Florida International':'C-USA',
   'Jacksonville State':'C-USA','Jacksonville St':'C-USA',
   'Kennesaw State':'C-USA','Kennesaw St':'C-USA',
-  'Liberty':'C-USA','Louisiana Tech':'C-USA',
-  'Middle Tennessee':'C-USA',
+  'Liberty':'C-USA','Louisiana Tech':'C-USA','La. Tech':'C-USA',
+  'Missouri State':'C-USA','Missouri St':'C-USA',
+  'MTSU':'C-USA','Middle Tennessee':'C-USA',
   'New Mexico State':'C-USA','New Mexico St':'C-USA',
-  'Sam Houston':'C-USA','Dallas Baptist':'C-USA','DBU':'C-USA',
-  'UTEP':'C-USA','Western Kentucky':'C-USA','WKU':'C-USA',
-  // Big West — full names + ESPN abbreviations
-  'Cal Poly':'Big West','Santa Barbara':'Big West','Irvine':'Big West','Riverside':'Big West',
+  'Sam Houston':'C-USA','Sam Houston State':'C-USA','Sam Houston St':'C-USA',
+  'WKU':'C-USA','Western Kentucky':'C-USA',
+  // Big West
+  'Cal Poly':'Big West',
   'Cal State Fullerton':'Big West','CS Fullerton':'Big West','Cal St. Fullerton':'Big West',
-  'Cal State Northridge':'Big West','CSUN':'Big West','Cal St. Northridge':'Big West',
-  'Hawaii':'Big West',
+  'CSU Bakersfield':'Big West','Cal State Bakersfield':'Big West','Cal St. Bakersfield':'Big West',
+  'CSUN':'Big West','Cal State Northridge':'Big West','Cal St. Northridge':'Big West',
+  'Hawaii':'Big West','Hawai'i':'Big West',
   'Long Beach State':'Big West','Long Beach St':'Big West',
-  'UC Davis':'Big West','UC Irvine':'Big West',
-  'UC Riverside':'Big West','UC San Diego':'Big West','UC Santa Barbara':'Big West',
+  'UC Davis':'Big West','UC Irvine':'Big West','Irvine':'Big West',
+  'UC Riverside':'Big West','Riverside':'Big West',
+  'UC San Diego':'Big West','UCSD':'Big West',
+  'UC Santa Barbara':'Big West','UCSB':'Big West','Santa Barbara':'Big West',
+  // Mountain West
+  'Air Force':'MWC','Fresno State':'MWC','Fresno St':'MWC',
+  'Grand Canyon':'MWC','GCU':'MWC',
+  'Nevada':'MWC','New Mexico':'MWC',
+  'San Diego State':'MWC','San Diego St':'MWC',
+  'San Jose State':'MWC','San Jose St':'MWC',
+  'UNLV':'MWC','Washington State':'MWC','Washington St':'MWC',
   // WCC
-  'Gonzaga':'WCC','LMU':'WCC','Loyola Marymount':'WCC','Pepperdine':'WCC',
-  'Portland':'WCC','San Diego':'WCC','San Francisco':'WCC','Santa Clara':'WCC',
-  'Saint Marys':'WCC','St. Marys':'WCC','Saint Mary':'WCC','St. Marys':'WCC',
-  // MVC — full names + ESPN abbreviations
-  'Bradley':'MVC','Evansville':'MVC',
+  'Gonzaga':'WCC','LMU':'WCC','Loyola Marymount':'WCC',
+  'Pacific':'WCC','Pepperdine':'WCC','Portland':'WCC',
+  'Saint Mary's':'WCC','Saint Marys':'WCC','St. Mary's':'WCC','St. Marys':'WCC',
+  'San Diego':'WCC','San Francisco':'WCC','Santa Clara':'WCC','Seattle':'WCC',
+  // Missouri Valley
+  'Belmont':'MVC','Bradley':'MVC','Evansville':'MVC',
   'Illinois State':'MVC','Illinois St':'MVC',
   'Indiana State':'MVC','Indiana St':'MVC',
-  'Missouri State':'MVC','Missouri St':'MVC',
-  'Southern Illinois':'MVC','SIU':'MVC','UIC':'MVC','Illinois-Chicago':'MVC',
-  // SoCon — full names + ESPN abbreviations
+  'Murray State':'MVC','Murray St':'MVC',
+  'Southern Illinois':'MVC','UIC':'MVC','Illinois-Chicago':'MVC',
+  'Valparaiso':'MVC',
+  // Southern Conference (SoCon)
   'The Citadel':'SoCon',
-  'East Tennessee State':'SoCon','East Tennessee St':'SoCon','ETSU':'SoCon',
-  'Furman':'SoCon','Mercer':'SoCon','Samford':'SoCon','UNC Greensboro':'SoCon',
-  'Western Carolina':'SoCon','Wofford':'SoCon','VMI':'SoCon',
-  // Southland — full names + ESPN abbreviations
-  'Houston Christian':'Southland','HBU':'Southland',
-  'Incarnate Word':'Southland','UIW':'Southland',
+  'ETSU':'SoCon','East Tennessee State':'SoCon','East Tennessee St':'SoCon',
+  'Mercer':'SoCon','Samford':'SoCon',
+  'UNCG':'SoCon','UNC Greensboro':'SoCon',
+  'VMI':'SoCon','Western Carolina':'SoCon','Wofford':'SoCon',
+  // Southland
+  'HCU':'Southland','Houston Christian':'Southland',
+  'UIW':'Southland','Incarnate Word':'Southland',
   'Lamar':'Southland',
   'McNeese':'Southland','McNeese State':'Southland','McNeese St':'Southland',
+  'New Orleans':'Southland','UNO':'Southland',
   'Nicholls':'Southland','Nicholls State':'Southland','Nicholls St':'Southland',
   'Northwestern State':'Southland','Northwestern St':'Southland',
-  'SE Louisiana':'Southland','SE La.':'Southland',
-  'Southeastern Louisiana':'Southland',
+  'SE Louisiana':'Southland','SE La.':'Southland','Southeastern Louisiana':'Southland',
   'Stephen F. Austin':'Southland','SFA':'Southland',
-  'Texas A&M-Corpus Christi':'Southland','Texas A&M-CC':'Southland',
-  // OVC — full names + ESPN abbreviations
-  'Austin Peay':'OVC','Bellarmine':'OVC',
-  'Eastern Illinois':'OVC',
-  'Eastern Kentucky':'OVC','Eastern KY':'OVC',
-  'Jacksonville':'OVC',
+  'Texas A&M-Corpus Christi':'Southland','Texas A&M-CC':'Southland','A&M-Corpus Christi':'Southland',
+  'UTRGV':'Southland','UT Rio Grande Valley':'Southland',
+  // Ohio Valley
+  'Eastern Illinois':'OVC','E. Illinois':'OVC',
+  'Lindenwood':'OVC',
+  'Little Rock':'OVC','Ark.-Little Rock':'OVC',
   'Morehead State':'OVC','Morehead St':'OVC',
-  'Murray State':'OVC','Murray St':'OVC',
+  'SIUE':'OVC','SIU Edwardsville':'OVC',
+  'Southeast Missouri':'OVC','SE Missouri State':'OVC','SE Missouri St':'OVC',
+  'Southeast Missouri State':'OVC',
   'Southern Indiana':'OVC','Southern Ind.':'OVC',
-  'Tennessee Martin':'OVC','UT Martin':'OVC',
-  'Tennessee State':'OVC','Tennessee St':'OVC',
-  'Tennessee Tech':'OVC','Illinois-Chicago':'OVC',
-  // Patriot
-  'Army':'Patriot','Bucknell':'Patriot','Holy Cross':'Patriot',
-  'Lafayette':'Patriot','Lehigh':'Patriot',
-  // NEC — full names + ESPN abbreviations
-  'Bryant':'NEC','Central Connecticut':'NEC','CCSU':'NEC',
-  'Fairleigh Dickinson':'NEC','FDU':'NEC',
-  'LIU':'NEC','Long Island University':'NEC','Merrimack':'NEC',
-  'Sacred Heart':'NEC',
-  'Saint Francis':'NEC','St. Francis':'NEC','St. Francis (PA)':'NEC',
+  'Tennessee Tech':'OVC',
+  'UT Martin':'OVC','Tennessee Martin':'OVC',
+  'Western Illinois':'OVC',
+  // Patriot League
+  'Army':'Patriot','Army West Point':'Patriot',
+  'Bucknell':'Patriot','Holy Cross':'Patriot',
+  'Lafayette':'Patriot','Lehigh':'Patriot','Navy':'Patriot',
+  // Northeast Conference (NEC)
+  'CCSU':'NEC','Central Connecticut':'NEC',
+  'Coppin State':'NEC','Coppin St':'NEC',
+  'Delaware State':'NEC','Delaware St':'NEC',
+  'FDU':'NEC','Fairleigh Dickinson':'NEC',
+  'Le Moyne':'NEC',
+  'LIU':'NEC','Long Island University':'NEC',
+  'Mercyhurst':'NEC',
+  'New Haven':'NEC',
+  'Norfolk State':'NEC','Norfolk St':'NEC',
+  'Sacred Heart':'NEC','Stonehill':'NEC',
+  'UMES':'NEC','Maryland-Eastern Shore':'NEC',
   'Wagner':'NEC',
-  // MAC — full names + ESPN abbreviations
-  'Ball State':'MAC','Ball St':'MAC',
-  'Bowling Green':'MAC','Buffalo':'MAC','Central Michigan':'MAC',
-  'Eastern Michigan':'MAC',
+  // MAC (Mid-American)
+  'Akron':'MAC','Ball State':'MAC','Ball St':'MAC',
+  'Bowling Green':'MAC',
+  'Central Michigan':'MAC','Eastern Michigan':'MAC',
   'Kent State':'MAC','Kent St':'MAC',
-  'Miami (OH)':'MAC','Northern Illinois':'MAC',
-  'Ohio':'MAC','Toledo':'MAC','Western Michigan':'MAC',
-  // WAC — full names + ESPN abbreviations
+  'Miami (OH)':'MAC','Miami (Ohio)':'MAC',
+  'Northern Illinois':'MAC','Ohio':'MAC',
+  'Toledo':'MAC',
+  'UMass':'MAC','Massachusetts':'MAC',
+  'Western Michigan':'MAC',
+  // WAC
   'Abilene Christian':'WAC',
-  'California Baptist':'WAC','Cal Baptist':'WAC',
-  'Grand Canyon':'WAC','GCU':'WAC',
-  'Sam Houston State':'WAC','Sam Houston St':'WAC',
-  'Southern Utah':'WAC',
-  'Tarleton State':'WAC','Tarleton St':'WAC','Tarleton':'WAC',
+  'CBU':'WAC','California Baptist':'WAC','Cal Baptist':'WAC',
+  'Sacramento State':'WAC','Sacramento St':'WAC','Sac State':'WAC',
+  'Tarleton':'WAC','Tarleton State':'WAC','Tarleton St':'WAC',
   'UT Arlington':'WAC','UTA':'WAC',
+  'Utah Tech':'WAC',
   'Utah Valley':'WAC','UVU':'WAC',
-  // SWAC — full names + ESPN abbreviations
+  // SWAC (HBCU)
   'Alabama A&M':'SWAC',
   'Alabama State':'SWAC','Alabama St':'SWAC',
   'Alcorn State':'SWAC','Alcorn St':'SWAC',
-  'Arkansas-Pine Bluff':'SWAC','Ark.-Pine Bluff':'SWAC',
+  'UAPB':'SWAC','Arkansas-Pine Bluff':'SWAC','Ark.-Pine Bluff':'SWAC',
   'Bethune-Cookman':'SWAC',
   'Florida A&M':'SWAC',
   'Grambling':'SWAC','Grambling State':'SWAC','Grambling St':'SWAC',
   'Jackson State':'SWAC','Jackson St':'SWAC',
-  'Mississippi Valley State':'SWAC','Mississippi Valley St':'SWAC','MVSU':'SWAC',
+  'MVSU':'SWAC','Mississippi Valley State':'SWAC','Mississippi Valley St':'SWAC',
   'Prairie View A&M':'SWAC','Prairie View':'SWAC',
   'Southern':'SWAC','Southern University':'SWAC','Southern Univ.':'SWAC',
   'Texas Southern':'SWAC',
-  // MEAC — full names + ESPN abbreviations
-  'Coppin State':'MEAC','Coppin St':'MEAC',
-  'Delaware State':'MEAC','Delaware St':'MEAC',
-  'Howard':'MEAC',
-  'Maryland-Eastern Shore':'MEAC','MD-Eastern Shore':'MEAC',
-  'Morgan State':'MEAC','Morgan St':'MEAC',
-  'Norfolk State':'MEAC','Norfolk St':'MEAC',
-  'North Carolina A&T':'MEAC','NC A&T':'MEAC',
-  'North Carolina Central':'MEAC','NC Central':'MEAC',
-  'Savannah State':'MEAC','Savannah St':'MEAC',
-  'South Carolina State':'MEAC','South Carolina St':'MEAC','SC State':'MEAC'
+  // ASUN
+  'Austin Peay':'ASUN',
+  'Bellarmine':'ASUN',
+  'Central Arkansas':'ASUN','Central Ark.':'ASUN',
+  'EKU':'ASUN','Eastern Kentucky':'ASUN','Eastern KY':'ASUN',
+  'FGCU':'ASUN','Florida Gulf Coast':'ASUN',
+  'Jacksonville':'ASUN',
+  'Lipscomb':'ASUN',
+  'North Alabama':'ASUN','North Ala.':'ASUN',
+  'North Florida':'ASUN','UNF':'ASUN',
+  'Queens':'ASUN',
+  'Stetson':'ASUN',
+  'West Georgia':'ASUN',
+  // Big South
+  'Charleston Southern':'Big South',
+  'Gardner-Webb':'Big South',
+  'High Point':'Big South',
+  'Longwood':'Big South',
+  'Presbyterian':'Big South',
+  'Radford':'Big South',
+  'UNC Asheville':'Big South','UNCA':'Big South',
+  'USC Upstate':'Big South',
+  'Winthrop':'Big South',
+  // America East
+  'Binghamton':'America East',
+  'Bryant':'America East',
+  'Maine':'America East',
+  'NJIT':'America East',
+  'UAlbany':'America East','Albany':'America East',
+  'UMass Lowell':'America East','Mass. Lowell':'America East',
+  'UMBC':'America East',
+  // Atlantic 10
+  'Davidson':'Atlantic 10',
+  'Dayton':'Atlantic 10',
+  'Fordham':'Atlantic 10',
+  'George Mason':'Atlantic 10',
+  'George Washington':'Atlantic 10','GW':'Atlantic 10',
+  'La Salle':'Atlantic 10',
+  'Rhode Island':'Atlantic 10','URI':'Atlantic 10',
+  'Richmond':'Atlantic 10',
+  'Saint Bonaventure':'Atlantic 10','St. Bonaventure':'Atlantic 10',
+  'Saint Joseph's':'Atlantic 10','St. Joseph's':'Atlantic 10',
+  'Saint Louis':'Atlantic 10','SLU':'Atlantic 10',
+  'VCU':'Atlantic 10',
+  // Big East
+  'Butler':'Big East',
+  'Creighton':'Big East',
+  'Georgetown':'Big East',
+  'St. John's':'Big East','Saint John's':'Big East',
+  'Seton Hall':'Big East',
+  'UConn':'Big East','Connecticut':'Big East',
+  'Villanova':'Big East',
+  'Xavier':'Big East',
+  // Coastal Athletic Association
+  'Campbell':'Coastal','Coastal Athl.':'Coastal',
+  'College of Charleston':'Coastal','Charleston':'Coastal',
+  'Elon':'Coastal',
+  'Hofstra':'Coastal',
+  'Monmouth':'Coastal',
+  'North Carolina A&T':'Coastal','NC A&T':'Coastal',
+  'Northeastern':'Coastal',
+  'Stony Brook':'Coastal',
+  'Towson':'Coastal',
+  'UNCW':'Coastal','UNC Wilmington':'Coastal',
+  'William & Mary':'Coastal','William and Mary':'Coastal',
+  // Ivy League
+  'Brown':'Ivy',
+  'Columbia':'Ivy',
+  'Cornell':'Ivy',
+  'Dartmouth':'Ivy',
+  'Harvard':'Ivy',
+  'Penn':'Ivy','Pennsylvania':'Ivy',
+  'Princeton':'Ivy',
+  'Yale':'Ivy',
+  // Metro Atlantic (MAAC)
+  'Canisius':'MAAC',
+  'Fairfield':'MAAC',
+  'Iona':'MAAC',
+  'Manhattan':'MAAC',
+  'Marist':'MAAC',
+  'Merrimack':'MAAC',
+  'Mount St. Mary's':'MAAC','Mount St. Marys':'MAAC',
+  'Niagara':'MAAC',
+  'Quinnipiac':'MAAC',
+  'Rider':'MAAC',
+  'Saint Peter's':'MAAC','Saint Peters':'MAAC',
+  'Siena':'MAAC',
+  // Horizon League
+  'Milwaukee':'Horizon',
+  'Northern Kentucky':'Horizon','NKU':'Horizon',
+  'Oakland':'Horizon',
+  'Wright State':'Horizon','Wright St':'Horizon',
+  'Youngstown State':'Horizon','Youngstown St':'Horizon',
+  // Summit League
+  'North Dakota State':'Summit','NDSU':'Summit',
+  'Northern Colorado':'Summit','UNC Bears':'Summit',
+  'Omaha':'Summit','Nebraska-Omaha':'Summit',
+  'Oral Roberts':'Summit',
+  'South Dakota State':'Summit','SDSU':'Summit',
+  'St. Thomas':'Summit','Saint Thomas':'Summit',
+  // Pac-12 (Oregon State only — independent)
+  'Oregon State':'Pac-12','Oregon St':'Pac-12'
 };
 
-var HBCU = { 'SWAC':1, 'MEAC':1 };
+var HBCU = { 'SWAC':1 };
 
 function getConf(name) {
   if (!name) return '';
@@ -1459,21 +1593,25 @@ document.addEventListener('click', function(e) {
 
 // ── Standings Panel ───────────────────────────────────────────────────────────
 var stndOpen = false;
-var stndConf = 'sec';
+var stndConf = 'SEC';
 
 // Map dropdown option values to NCAA API conference slugs
 var CONF_SLUGS = {
   'SEC': 'sec', 'ACC': 'acc', 'Big 12': 'big-12', 'Big Ten': 'big-ten',
   'American': 'american-athletic', 'Sun Belt': 'sun-belt', 'C-USA': 'c-usa',
-  'Big West': 'big-west', 'MWC': 'mountain-west', 'WCC': 'wcc',
-  'MVC': 'missouri-valley', 'SoCon': 'southern', 'Southland': 'southland',
-  'OVC': 'ohio-valley', 'Patriot': 'patriot-league', 'NEC': 'northeast',
-  'MAC': 'mid-american', 'WAC': 'wac', 'Pac-12': 'pac-12',
-  'SWAC': 'southwestern-athletic', 'MEAC': 'mid-eastern-athletic'
+  'MWC': 'mountain-west', 'Big West': 'big-west', 'WCC': 'west-coast',
+  'ASUN': 'asun', 'Big South': 'big-south', 'Coastal': 'coastal-athletic',
+  'SoCon': 'southern', 'Southland': 'southland', 'OVC': 'ohio-valley',
+  'MVC': 'missouri-valley', 'MAC': 'mid-american', 'Patriot': 'patriot-league',
+  'NEC': 'northeast', 'Atlantic 10': 'atlantic-10', 'Big East': 'big-east',
+  'America East': 'america-east', 'MAAC': 'metro-atlantic',
+  'Horizon': 'horizon-league', 'Summit': 'summit-league',
+  'Ivy': 'ivy-league', 'WAC': 'wac', 'SWAC': 'southwestern-athletic',
+  'Pac-12': 'pac-12'
 };
 
 function openStndPanel() {
-  if (slOpen) closeSLPanel();
+  if (slOpen) closeSlPanel();
   stndOpen = true;
   document.getElementById('stndPanel').style.display = 'block';
   fetchNcaaStandings(stndConf);
